@@ -1,5 +1,6 @@
 package fr.uge.android.watchoid.ui.components
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -12,22 +13,25 @@ import androidx.compose.material3.Text
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import fr.uge.android.watchoid.DAO.ServiceTestDao
 
 
 @Composable
-fun ServiceTestList(serviceTests: List<ServiceTest>) {
+fun ServiceTestList(serviceTests: List<ServiceTest>, onServiceTestClick: (ServiceTest) -> Unit = {}) {
     LazyColumn {
         items(serviceTests) { serviceTest ->
-            ServiceTestCard(serviceTest)
+            ServiceTestCard(serviceTest, onServiceTestClick)
         }
     }
 }
 
 @Composable
-fun ServiceTestCard(serviceTest: ServiceTest) {
+fun ServiceTestCard(serviceTest: ServiceTest, onClick: (ServiceTest) -> Unit = {}) {
     Column(modifier = Modifier
         .fillMaxWidth()
-        .padding(vertical = 8.dp)) {
+        .padding(vertical = 8.dp)
+        .clickable(onClick = { onClick(serviceTest) })
+    ) {
         Text(
             text = "${serviceTest.name} (${serviceTest.type.name})",
             fontSize = 20.sp

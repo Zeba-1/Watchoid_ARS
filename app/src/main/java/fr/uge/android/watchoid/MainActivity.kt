@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -21,10 +20,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.room.Room
+import fr.uge.android.watchoid.Action.ExecuteTest
 import fr.uge.android.watchoid.DAO.ServiceTestDao
-import fr.uge.android.watchoid.DAO.ServiceTestDao_Impl
 import fr.uge.android.watchoid.entity.test.ServiceTest
 import fr.uge.android.watchoid.ui.components.ServiceTestForm
 import fr.uge.android.watchoid.ui.components.ServiceTestList
@@ -38,6 +36,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
+        // connect or create the database
         watchoidDatabase = Room.databaseBuilder(
             applicationContext,
             WatchoidDatabase::class.java,
@@ -65,21 +64,24 @@ class MainActivity : ComponentActivity() {
 fun TEST(modifier: Modifier = Modifier, dao: ServiceTestDao) {
     var reloadTrigger by remember { mutableStateOf(false) }
 
-    val couroutineScope = rememberCoroutineScope()
+    val coroutineScope = rememberCoroutineScope()
     var serviceTests by remember { mutableStateOf<List<ServiceTest>>(emptyList()) }
 
     LaunchedEffect(reloadTrigger) { // Reload tests when reloadTrigger changes
-        couroutineScope.launch {
+        coroutineScope.launch {
             serviceTests = dao.getAllTests()
         }
     }
 
     Column {
-        ServiceTestForm (dao, couroutineScope) { st ->
+        ServiceTestForm (dao, coroutineScope) { st ->
             reloadTrigger = !reloadTrigger
             Log.i("INFO", "ServiceTest added: $st")
         }
 
-        ServiceTestList(serviceTests)
+        ServiceTestList(serviceTests) {
+            Log.i("INFO", "ServiceTest clicked: $it")
+            ExecuteTest(it, coroutineScope)
+        }
     }
 }
