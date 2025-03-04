@@ -9,5 +9,6 @@ class ServiceTest (
     val name: String,
     val type: TestType,
     val target: String,
-    val periodicity: Long
+    val periodicity: Long,
+    val status: TestStatus = TestStatus.PENDING
 )

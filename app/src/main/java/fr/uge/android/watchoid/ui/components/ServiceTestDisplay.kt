@@ -1,19 +1,43 @@
 package fr.uge.android.watchoid.ui.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import fr.uge.android.watchoid.entity.test.ServiceTest
 
 import androidx.compose.runtime.Composable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import fr.uge.android.watchoid.Action.ExecuteTest
 import fr.uge.android.watchoid.DAO.ServiceTestDao
+import fr.uge.android.watchoid.entity.test.TestStatus
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 
 
 @Composable
@@ -27,19 +51,156 @@ fun ServiceTestList(serviceTests: List<ServiceTest>, onServiceTestClick: (Servic
 
 @Composable
 fun ServiceTestCard(serviceTest: ServiceTest, onClick: (ServiceTest) -> Unit = {}) {
-    Column(modifier = Modifier
-        .fillMaxWidth()
-        .padding(vertical = 8.dp)
-        .clickable(onClick = { onClick(serviceTest) })
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp, horizontal = 16.dp)
+            .background(Color(0x25485C91), RoundedCornerShape(8.dp))
+            .clickable(onClick = { onClick(serviceTest) })
     ) {
-        Text(
-            text = "${serviceTest.name} (${serviceTest.type.name})",
-            fontSize = 20.sp
-        )
-        Text(
-            text = serviceTest.target,
-            fontSize = 14.sp,
-            modifier = Modifier.padding(top = 4.dp)
-        )
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row {
+                    val (icon, color) = GetStatusIcon(serviceTest)
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = color
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = serviceTest.name,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Text(
+                    text = serviceTest.type.name,
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Target: ${serviceTest.target}",
+                fontSize = 14.sp,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+    }
+}
+
+@Composable
+fun ServiceTestDetails(serviceTest: ServiceTest, dao: ServiceTestDao, coroutineScope: CoroutineScope) {
+    Column(
+        modifier = Modifier
+            .padding(16.dp)
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(16.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = serviceTest.name,
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            val (icon, color) = GetStatusIcon(serviceTest)
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = color
+            )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Row {
+            Text(
+                text = "Type: ",
+                fontSize = 18.sp,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            Text(
+                text = serviceTest.type.name,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Row {
+            Text(
+                text = "Target: ",
+                fontSize = 18.sp,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            Text(
+                text = serviceTest.target,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Row {
+            Text(
+                text = "Periodicity: ",
+                fontSize = 18.sp,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            Text(
+                text = serviceTest.periodicity.toString(),
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Row (
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Button(
+                onClick = {
+                    coroutineScope.launch {
+                        ExecuteTest(serviceTest, coroutineScope)
+                    }
+                },
+            ) {
+                Text("Execute")
+            }
+            Button(
+                onClick = {
+                    coroutineScope.launch {
+                        dao.delete(serviceTest)
+                    }
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF44336))
+            ) {
+                Text("Delete")
+            }
+        }
+    }
+}
+
+fun GetStatusIcon(serviceTest: ServiceTest): Pair<ImageVector, Color> {
+    return when (serviceTest.status) {
+        TestStatus.PENDING -> Pair(Icons.Default.Info, Color(0xFF2196F3))
+        TestStatus.SUCCESS -> Pair(Icons.Default.CheckCircle, Color(0xFF4CAF50))
+        TestStatus.FAILURE -> Pair(Icons.Default.Warning, Color(0xFFF44336))
     }
 }
