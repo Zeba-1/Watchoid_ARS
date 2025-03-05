@@ -50,6 +50,7 @@ fun ServiceTestForm(
     var target by remember { mutableStateOf("") }
     var periodicity by remember { mutableLongStateOf(0L) }
     var expanded by remember { mutableStateOf(false) }
+    var port by remember { mutableStateOf(0) }
 
     Column(
         modifier = Modifier
@@ -118,6 +119,15 @@ fun ServiceTestForm(
             }
         }
 
+        if (type == TestType.UDP || type == TestType.TCP) {
+            TextField(
+                value = port.toString(),
+                onValueChange = { port = it.toIntOrNull() ?: 0 },
+                label = { Text("Port") },
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+
         Spacer(modifier = Modifier.height(16.dp))
 
         Button(onClick = {
@@ -126,7 +136,8 @@ fun ServiceTestForm(
                     type = type,
                     target = target,
                     periodicity = periodicity,
-                    status = TestStatus.PENDING
+                    status = TestStatus.PENDING,
+                    port = port
                 )
                 coroutineScope.launch {
                     dao.insert(serviceTest)

@@ -10,5 +10,6 @@ class ServiceTest (
     val type: TestType,
     val target: String,
     val periodicity: Long,
-    val status: TestStatus = TestStatus.PENDING
+    val status: TestStatus = TestStatus.PENDING,
+    val port: Int = 0
 )

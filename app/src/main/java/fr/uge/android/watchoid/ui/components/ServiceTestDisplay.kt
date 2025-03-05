@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.sp
 import fr.uge.android.watchoid.Action.ExecuteTest
 import fr.uge.android.watchoid.DAO.ServiceTestDao
 import fr.uge.android.watchoid.entity.test.TestStatus
+import fr.uge.android.watchoid.entity.test.TestType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -166,6 +167,24 @@ fun ServiceTestDetails(serviceTest: ServiceTest, dao: ServiceTestDao, coroutineS
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
+        }
+
+        if (serviceTest.type == TestType.UDP || serviceTest.type == TestType.TCP) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Row {
+                Text(
+                    text = "Port: ",
+                    fontSize = 18.sp,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                Text(
+                    text = serviceTest.port.toString(),
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
