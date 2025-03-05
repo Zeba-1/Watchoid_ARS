@@ -190,8 +190,7 @@ fun ServiceTestForm(
                     target = target,
                     periodicity = periodicity,
                     status = TestStatus.PENDING,
-                    port = port
-                    status = TestStatus.PENDING,
+                    port = port,
                     patern = patern,
                     paternType = paternType
                 )

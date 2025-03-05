@@ -1,6 +1,5 @@
 package fr.uge.android.watchoid.ui.components
 
-import android.view.Gravity
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -16,7 +15,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import fr.uge.android.watchoid.entity.test.ServiceTest
-
 import androidx.compose.runtime.Composable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -211,70 +209,73 @@ fun ServiceTestDetails(serviceTestId: Int, dao: ServiceTestDao, coroutineScope: 
                         .heightIn(max = 100.dp)
                 )
             }
+
             Text(
                 text = serviceTest.periodicity.toString(),
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
-        }
 
-        if (serviceTest.type == TestType.UDP || serviceTest.type == TestType.TCP) {
-            Spacer(modifier = Modifier.height(8.dp))
-            Row {
-                Text(
-                    text = "Port: ",
-                    fontSize = 18.sp,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+            if (serviceTest.type == TestType.UDP || serviceTest.type == TestType.TCP) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Row {
+                    Text(
+                        text = "Port: ",
+                        fontSize = 18.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
 
-                Text(
-                    text = serviceTest.port.toString(),
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+                    Text(
+                        text = serviceTest.port.toString(),
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
             }
         }
 
-            Spacer(modifier = Modifier.height(16.dp))
-            Spacer(modifier = Modifier.weight(1f))
 
-            Row(
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                modifier = Modifier.fillMaxWidth()
+
+        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.weight(1f))
+
+        Row(
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Button(
+                onClick = {
+                    coroutineScope.launch {
+                        isLoading = true
+                        ExecuteTest(serviceTest, coroutineScope, dao, true) {
+                            serviceTest = ServiceTest()
+                            isLoading = false
+
+                            Toast.makeText(
+                                context,
+                                if (it) "Test pass" else "Test fail",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
+                },
             ) {
-                Button(
-                    onClick = {
-                        coroutineScope.launch {
-                            isLoading = true
-                            ExecuteTest(serviceTest, coroutineScope, dao, true) {
-                                serviceTest = ServiceTest()
-                                isLoading = false
-
-                                Toast.makeText(
-                                    context,
-                                    if (it) "Test pass" else "Test fail",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            }
-                        }
-                    },
-                ) {
-                    Text("Execute")
-                }
-                Button(
-                    onClick = {
-                        coroutineScope.launch {
-                            dao.delete(serviceTest)
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF44336))
-                ) {
-                    Text("Delete")
-                }
+                Text("Execute")
+            }
+            Button(
+                onClick = {
+                    coroutineScope.launch {
+                        dao.delete(serviceTest)
+                    }
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF44336))
+            ) {
+                Text("Delete")
             }
         }
+
 
         if (isLoading) {
             Box(
