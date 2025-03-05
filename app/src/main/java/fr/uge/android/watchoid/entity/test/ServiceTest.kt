@@ -12,4 +12,11 @@ class ServiceTest (
     val periodicity: Long,
     val status: TestStatus = TestStatus.PENDING,
     val port: Int = 0
+    var name: String = "",
+    var type: TestType = TestType.PING,
+    var target: String = "",
+    var periodicity: Long = 0,
+    var patern: String = "", // use to check the response of http test
+    var paternType: PaternType = PaternType.CONTAINS,
+    var status: TestStatus = TestStatus.PENDING
 )

@@ -1,5 +1,7 @@
 package fr.uge.android.watchoid.ui.components
 
+import android.view.Gravity
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -7,8 +9,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import fr.uge.android.watchoid.entity.test.ServiceTest
@@ -23,13 +27,21 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -95,72 +107,110 @@ fun ServiceTestCard(serviceTest: ServiceTest, onClick: (ServiceTest) -> Unit = {
 }
 
 @Composable
-fun ServiceTestDetails(serviceTest: ServiceTest, dao: ServiceTestDao, coroutineScope: CoroutineScope) {
-    Column(
-        modifier = Modifier
-            .padding(16.dp)
-            .background(MaterialTheme.colorScheme.surface)
-            .padding(16.dp)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = serviceTest.name,
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            val (icon, color) = GetStatusIcon(serviceTest)
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = color
-            )
+fun ServiceTestDetails(serviceTestId: Int, dao: ServiceTestDao, coroutineScope: CoroutineScope) {
+    var isLoading by remember { mutableStateOf(true) }
+    var serviceTest by remember { mutableStateOf(ServiceTest()) }
+    val context = LocalContext.current
+
+    LaunchedEffect(serviceTestId, serviceTest) {
+        coroutineScope.launch {
+            serviceTest = dao.getTestById(serviceTestId)!!
         }
+        isLoading = false
+    }
 
-        Spacer(modifier = Modifier.height(8.dp))
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .padding(16.dp)
+                .background(MaterialTheme.colorScheme.surface)
+                .padding(16.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = serviceTest.name,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                val (icon, color) = GetStatusIcon(serviceTest)
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = color
+                )
+            }
 
-        Row {
-            Text(
-                text = "Type: ",
-                fontSize = 18.sp,
-                color = MaterialTheme.colorScheme.onSurface
-            )
+            Spacer(modifier = Modifier.height(8.dp))
 
-            Text(
-                text = serviceTest.type.name,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-        }
+            Row {
+                Text(
+                    text = "Type: ",
+                    fontSize = 18.sp,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
 
-        Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = serviceTest.type.name,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
 
-        Row {
-            Text(
-                text = "Target: ",
-                fontSize = 18.sp,
-                color = MaterialTheme.colorScheme.onSurface
-            )
+            Spacer(modifier = Modifier.height(8.dp))
 
-            Text(
-                text = serviceTest.target,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-        }
+            Row {
+                Text(
+                    text = "Target: ",
+                    fontSize = 18.sp,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
 
-        Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = serviceTest.target,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
 
-        Row {
-            Text(
-                text = "Periodicity: ",
-                fontSize = 18.sp,
-                color = MaterialTheme.colorScheme.onSurface
-            )
+            Spacer(modifier = Modifier.height(8.dp))
 
+            Row {
+                Text(
+                    text = "Periodicity: ",
+                    fontSize = 18.sp,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                Text(
+                    text = serviceTest.periodicity.toString(),
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+
+            if (serviceTest.type != TestType.PING) {
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = "Patern (${serviceTest.paternType}): ",
+                    fontSize = 18.sp,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                TextField(
+                    value = serviceTest.patern,
+                    onValueChange = {},
+                    readOnly = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 100.dp)
+                )
+            }
             Text(
                 text = serviceTest.periodicity.toString(),
                 fontSize = 18.sp,
@@ -187,30 +237,56 @@ fun ServiceTestDetails(serviceTest: ServiceTest, dao: ServiceTestDao, coroutineS
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.weight(1f))
 
-        Row (
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Button(
-                onClick = {
-                    coroutineScope.launch {
-                        ExecuteTest(serviceTest, coroutineScope)
-                    }
-                },
+            Row(
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Execute")
+                Button(
+                    onClick = {
+                        coroutineScope.launch {
+                            isLoading = true
+                            ExecuteTest(serviceTest, coroutineScope, dao, true) {
+                                serviceTest = ServiceTest()
+                                isLoading = false
+
+                                Toast.makeText(
+                                    context,
+                                    if (it) "Test pass" else "Test fail",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        }
+                    },
+                ) {
+                    Text("Execute")
+                }
+                Button(
+                    onClick = {
+                        coroutineScope.launch {
+                            dao.delete(serviceTest)
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF44336))
+                ) {
+                    Text("Delete")
+                }
             }
-            Button(
-                onClick = {
-                    coroutineScope.launch {
-                        dao.delete(serviceTest)
-                    }
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF44336))
+        }
+
+        if (isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0x80000000))
+                    .clickable(enabled = false) {}
             ) {
-                Text("Delete")
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center),
+                    color = MaterialTheme.colorScheme.primary
+                )
             }
         }
     }

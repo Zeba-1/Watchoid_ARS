@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.DateRange
@@ -33,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import fr.uge.android.watchoid.DAO.ServiceTestDao
+import fr.uge.android.watchoid.entity.test.PaternType
 import fr.uge.android.watchoid.entity.test.ServiceTest
 import fr.uge.android.watchoid.entity.test.TestStatus
 import fr.uge.android.watchoid.entity.test.TestType
@@ -49,10 +51,14 @@ fun ServiceTestForm(
     var type by remember { mutableStateOf(TestType.PING) }
     var target by remember { mutableStateOf("") }
     var periodicity by remember { mutableLongStateOf(0L) }
+    var expandedType by remember { mutableStateOf(false) }
+    var expandedPatern by remember { mutableStateOf(false) }
+    var patern by remember { mutableStateOf("") }
+    var paternType by remember { mutableStateOf(PaternType.CONTAINS) }
     var expanded by remember { mutableStateOf(false) }
     var port by remember { mutableStateOf(0) }
 
-    Column(
+    Column (
         modifier = Modifier
             .padding(16.dp)
             .background(MaterialTheme.colorScheme.surface)
@@ -90,7 +96,7 @@ fun ServiceTestForm(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { expanded = true }
+                    .clickable { expandedType = true }
                     .padding(8.dp)
             ) {
                 Text(
@@ -98,23 +104,70 @@ fun ServiceTestForm(
                     modifier = Modifier.weight(1f)
                 )
                 Icon(
-                    imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                    imageVector = if (expandedType) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary
                 )
             }
             DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false }
+                expanded = expandedType,
+                onDismissRequest = { expandedType = false }
             ) {
                 TestType.entries.forEach { testType ->
                     DropdownMenuItem(
                         text = { Text(testType.name) },
                         onClick = {
                             type = testType
-                            expanded = false
+                            expandedType = false
                         }
                     )
+                }
+            }
+        }
+
+        if (type != TestType.PING) {
+            Spacer(modifier = Modifier.height(16.dp))
+
+            TextField(
+                value = patern,
+                onValueChange = { patern = it },
+                label = { Text("Patern") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Box {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { expandedPatern = true }
+                        .padding(8.dp)
+                ) {
+                    Text(
+                        text = "Patern type: ${paternType.name}",
+                        modifier = Modifier.weight(1f)
+                    )
+                    Icon(
+                        imageVector = if (expandedPatern) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+                DropdownMenu(
+                    expanded = expandedPatern,
+                    onDismissRequest = { expandedPatern = false }
+                ) {
+                    PaternType.entries.forEach { _paternType ->
+                        DropdownMenuItem(
+                            text = { Text(_paternType.name) },
+                            onClick = {
+                                paternType = _paternType
+                                expandedPatern = false
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -138,6 +191,9 @@ fun ServiceTestForm(
                     periodicity = periodicity,
                     status = TestStatus.PENDING,
                     port = port
+                    status = TestStatus.PENDING,
+                    patern = patern,
+                    paternType = paternType
                 )
                 coroutineScope.launch {
                     dao.insert(serviceTest)
