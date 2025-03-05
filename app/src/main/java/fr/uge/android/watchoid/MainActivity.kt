@@ -104,7 +104,7 @@ fun MainView(modifier: Modifier = Modifier, dao: ServiceTestDao) {
                     activeScreen = ActiveScreen.SERVICE_TEST_DETAILS
                 }
             }
-            ActiveScreen.SERVICE_TEST_DETAILS -> ServiceTestDetails(selectedServiceTest!!, dao, coroutineScope)
+            ActiveScreen.SERVICE_TEST_DETAILS -> ServiceTestDetails(selectedServiceTest!!.id, dao, coroutineScope)
             ActiveScreen.SERVICE_TEST_CREATION -> ServiceTestForm (dao, coroutineScope) { st ->
                 Log.i("INFO", "ServiceTest added: $st")
                 activeScreen = ActiveScreen.SERVICE_TESTS_LIST
