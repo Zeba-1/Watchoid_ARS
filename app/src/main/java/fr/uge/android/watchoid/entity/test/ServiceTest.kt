@@ -6,6 +6,7 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "service_test")
 class ServiceTest (
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val port: Int = 0,
     var name: String = "",
     var type: TestType = TestType.PING,
     var target: String = "",

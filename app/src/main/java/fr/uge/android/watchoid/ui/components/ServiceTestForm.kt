@@ -55,6 +55,8 @@ fun ServiceTestForm(
     var expandedPatern by remember { mutableStateOf(false) }
     var patern by remember { mutableStateOf("") }
     var paternType by remember { mutableStateOf(PaternType.CONTAINS) }
+    var expanded by remember { mutableStateOf(false) }
+    var port by remember { mutableStateOf(0) }
 
     Column (
         modifier = Modifier
@@ -170,6 +172,15 @@ fun ServiceTestForm(
             }
         }
 
+        if (type == TestType.UDP || type == TestType.TCP) {
+            TextField(
+                value = port.toString(),
+                onValueChange = { port = it.toIntOrNull() ?: 0 },
+                label = { Text("Port") },
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+
         Spacer(modifier = Modifier.height(16.dp))
 
         Button(onClick = {
@@ -179,6 +190,7 @@ fun ServiceTestForm(
                     target = target,
                     periodicity = periodicity,
                     status = TestStatus.PENDING,
+                    port = port,
                     patern = patern,
                     paternType = paternType
                 )
