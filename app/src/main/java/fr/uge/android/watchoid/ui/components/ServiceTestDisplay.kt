@@ -234,48 +234,45 @@ fun ServiceTestDetails(serviceTestId: Int, dao: ServiceTestDao, coroutineScope: 
                     )
                 }
             }
-        }
 
+            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.weight(1f))
 
+            Row(
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Button(
+                    onClick = {
+                        coroutineScope.launch {
+                            isLoading = true
+                            ExecuteTest(serviceTest, coroutineScope, dao, true) {
+                                serviceTest = ServiceTest()
+                                isLoading = false
 
-        Spacer(modifier = Modifier.height(16.dp))
-        Spacer(modifier = Modifier.weight(1f))
-
-        Row(
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Button(
-                onClick = {
-                    coroutineScope.launch {
-                        isLoading = true
-                        ExecuteTest(serviceTest, coroutineScope, dao, true) {
-                            serviceTest = ServiceTest()
-                            isLoading = false
-
-                            Toast.makeText(
-                                context,
-                                if (it) "Test pass" else "Test fail",
-                                Toast.LENGTH_SHORT
-                            ).show()
+                                Toast.makeText(
+                                    context,
+                                    if (it) "Test pass" else "Test fail",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
                         }
-                    }
-                },
-            ) {
-                Text("Execute")
-            }
-            Button(
-                onClick = {
-                    coroutineScope.launch {
-                        dao.delete(serviceTest)
-                    }
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF44336))
-            ) {
-                Text("Delete")
+                    },
+                ) {
+                    Text("Execute")
+                }
+                Button(
+                    onClick = {
+                        coroutineScope.launch {
+                            dao.delete(serviceTest)
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF44336))
+                ) {
+                    Text("Delete")
+                }
             }
         }
-
 
         if (isLoading) {
             Box(
