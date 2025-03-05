@@ -6,9 +6,11 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "service_test")
 class ServiceTest (
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
-    val name: String,
-    val type: TestType,
-    val target: String,
-    val periodicity: Long,
-    val status: TestStatus = TestStatus.PENDING
+    var name: String = "",
+    var type: TestType = TestType.PING,
+    var target: String = "",
+    var periodicity: Long = 0,
+    var patern: String = "", // use to check the response of http test
+    var paternType: PaternType = PaternType.CONTAINS,
+    var status: TestStatus = TestStatus.PENDING
 )
