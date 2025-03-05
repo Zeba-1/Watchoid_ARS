@@ -210,13 +210,6 @@ fun ServiceTestDetails(serviceTestId: Int, dao: ServiceTestDao, coroutineScope: 
                 )
             }
 
-            Text(
-                text = serviceTest.periodicity.toString(),
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-
             if (serviceTest.type == TestType.UDP || serviceTest.type == TestType.TCP) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Row {
