@@ -4,6 +4,7 @@ import android.util.Log
 import fr.uge.android.watchoid.DAO.ServiceTestDao
 import fr.uge.android.watchoid.entity.test.PaternType
 import fr.uge.android.watchoid.entity.test.ServiceTest
+import fr.uge.android.watchoid.entity.test.TestReport
 import fr.uge.android.watchoid.entity.test.TestStatus
 import fr.uge.android.watchoid.entity.test.TestType
 import kotlinx.coroutines.CoroutineScope
@@ -58,8 +59,14 @@ fun ExecutePingTest(serviceTest: ServiceTest, coroutineScope: CoroutineScope, da
             Log.i("ServiceTest", "${serviceTest.target} is not reachable after $responseTime ms")
             serviceTest.status = TestStatus.FAILURE
         }
-
+        serviceTest.lastTest = System.currentTimeMillis()
         dao.update(serviceTest)
+
+        val report = TestReport(testId = serviceTest.id,
+            isTestOk = isReachable,
+            responseTime = responseTime,
+            info = if (isReachable) "Ping success" else "Ping failed (timeout)")
+        dao.insertTestReport(report)
 
         if (userExecuted) {
             userAction(isReachable)
@@ -88,32 +95,47 @@ suspend fun ping(target: String): Pair<Boolean, Long> {
 fun ExecuteHttpTest(serviceTest: ServiceTest, coroutineScope: CoroutineScope, dao: ServiceTestDao, userExecuted: Boolean = false, userAction: (Boolean) -> Unit = {}) {
     coroutineScope.launch {
         Log.i("ServiceTest", "Executing HTTP test on ${serviceTest.target}")
-        val (isReachable, response) = HttpGet(serviceTest.target)
+        val startTime = System.currentTimeMillis()
+        val (responseCode, response) = HttpGet(serviceTest.target)
+        val endTime = System.currentTimeMillis()
+        val responseTime = endTime - startTime
 
-        if (!isReachable) {
+        if (responseCode != 200) {
             Log.i("ServiceTest", "${serviceTest.target} is not reachable or error")
+
+            serviceTest.status = TestStatus.FAILURE
+            dao.update(serviceTest)
+
+            val report = TestReport(testId = serviceTest.id,
+                isTestOk = false,
+                responseTime = responseTime,
+                info = if (responseCode == -1) "Connection error" else "Response code is $responseCode")
+            dao.insertTestReport(report)
+
             return@launch
         }
 
-        var error = response.isEmpty()
+        var testResult = checkResponse(response, serviceTest.patern, serviceTest.paternType)
 
-        error = error || !checkPattern(response, serviceTest.patern, serviceTest.paternType, serviceTest.target)
-
-        if (error) {
-            serviceTest.status = TestStatus.FAILURE
-        } else {
-            Log.i("ServiceTest", "${serviceTest.name} succeded !")
-            serviceTest.status = TestStatus.SUCCESS
-        }
+        Log.i("ServiceTest", "${serviceTest.name} ${if (testResult) "success" else "failed"}")
+        serviceTest.status = if (testResult) TestStatus.SUCCESS else TestStatus.FAILURE
+        serviceTest.lastTest = System.currentTimeMillis()
         dao.update(serviceTest)
 
+        val report = TestReport(testId = serviceTest.id,
+            isTestOk = testResult,
+            responseTime = responseTime,
+            info = if (testResult) "Response verification succeed" else "Response verification failed")
+        dao.insertTestReport(report)
+
         if (userExecuted) {
-            userAction(!error)
+            userAction(testResult)
         }
     }
 }
 
-suspend fun HttpGet(target: String): Pair<Boolean, String> {
+// return the response code and the response
+suspend fun HttpGet(target: String): Pair<Int, String> {
     return withContext(Dispatchers.IO) {
         try {
             val url = URL(target)
@@ -122,15 +144,21 @@ suspend fun HttpGet(target: String): Pair<Boolean, String> {
             connection.connect()
 
             val responseCode = connection.responseCode
-            if (responseCode == HttpURLConnection.HTTP_OK) {
-                Pair(true, connection.inputStream.bufferedReader().use { it.readText() })
-            } else {
-                Pair(false, "")
-            }
+            val response = if (responseCode < 400) connection.inputStream.bufferedReader().use { it.readText() } else ""
+            Pair(responseCode, response)
         } catch (e: Exception) {
             e.printStackTrace()
-            Pair(false, "")
+            Pair(-1, "")
         }
+    }
+}
+
+fun checkResponse(response: String, patern: String, paternType: PaternType): Boolean {
+    return when(paternType) {
+        PaternType.CONTAINS -> response.contains(patern)
+        PaternType.EQUALS -> response == patern
+        PaternType.NOT_CONTAINS -> !response.contains(patern)
+        PaternType.REGEX -> response.matches(patern.toRegex())
     }
 }
 
@@ -168,7 +196,7 @@ suspend fun UdpSend(target: String,message:String ,port: Int, patternMatching:St
 
             try {
                 socket.receive(receivePacket)
-                if (checkPattern(String(receivePacket.data, 0, receivePacket.length), patternMatching, patternType, target)) {
+                if (checkResponse(String(receivePacket.data, 0, receivePacket.length), patternMatching, patternType)) {
                     Pair(true, "Pattern found")
                 } else {
                     Pair(false, "Pattern not found")
@@ -221,7 +249,7 @@ suspend fun TcpSend(target: String,message:String ,port: Int, patternMatching:St
 
                 try {
                     socket.soTimeout = 2000
-                    if (checkPattern(inValue.readLine(), patternMatching, patternType, target)) {
+                    if (checkResponse(inValue.readLine(), patternMatching, patternType)) {
                        Pair(true, "Pattern found")
                     } else {
                        Pair(false, "Pattern not found")
@@ -242,32 +270,3 @@ suspend fun TcpSend(target: String,message:String ,port: Int, patternMatching:St
     }
 }
 
-fun checkPattern(response: String, patern: String, paternType:PaternType, target:String): Boolean {
-    when(paternType) {
-        PaternType.CONTAINS -> {
-            if (!response.contains(patern)) {
-                Log.e("ServiceTest" ,"${response} for ${target} returned $response but does not contain ${patern}")
-                return false
-            }
-        }
-        PaternType.REGEX -> {
-            if (!response.matches(patern.toRegex())) {
-                Log.e("ServiceTest", "${response} for ${target} response not match ${patern}")
-                return false
-            }
-        }
-        PaternType.NOT_CONTAINS -> {
-            if (response.contains(patern)) {
-                Log.e("ServiceTest", "${response} for ${target} response contains ${patern}")
-                return false
-            }
-        }
-        PaternType.EQUALS -> {
-            if (response != patern) {
-                Log.e("ServiceTest", "${response} for ${target} returned a different response: $response")
-                return false
-            }
-        }
-    }
-    return true
-}

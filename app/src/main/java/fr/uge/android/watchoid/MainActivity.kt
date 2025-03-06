@@ -23,6 +23,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -50,6 +51,7 @@ import fr.uge.android.watchoid.ui.ActiveScreen
 import fr.uge.android.watchoid.ui.components.ServiceTestDetails
 import fr.uge.android.watchoid.ui.components.ServiceTestForm
 import fr.uge.android.watchoid.ui.components.ServiceTestList
+import fr.uge.android.watchoid.ui.components.TestReportListScreen
 import fr.uge.android.watchoid.ui.theme.WatchoidTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -109,6 +111,10 @@ fun MainView(modifier: Modifier = Modifier, dao: ServiceTestDao) {
                 Log.i("INFO", "ServiceTest added: $st")
                 activeScreen = ActiveScreen.SERVICE_TESTS_LIST
             }
+            ActiveScreen.SERVICE_TEST_HISTORY_ALL -> {
+                TestReportListScreen(coroutineScope, dao)
+            }
+            ActiveScreen.SERVICE_TEST_HISTORY_DETAILS -> TODO()
         }
     }
 }
@@ -128,6 +134,8 @@ fun TopBar(activeScreen: ActiveScreen, onScreenChange : (ActiveScreen) -> Unit) 
                 ActiveScreen.SERVICE_TESTS_LIST -> "Service tests"
                 ActiveScreen.SERVICE_TEST_DETAILS -> "Service test details"
                 ActiveScreen.SERVICE_TEST_CREATION -> "Add a new test"
+                ActiveScreen.SERVICE_TEST_HISTORY_ALL -> "Test report"
+                ActiveScreen.SERVICE_TEST_HISTORY_DETAILS -> "Test report"
             },
             color = Color.White,
             fontSize = 20.sp,
@@ -135,13 +143,24 @@ fun TopBar(activeScreen: ActiveScreen, onScreenChange : (ActiveScreen) -> Unit) 
         )
 
         if (activeScreen == ActiveScreen.SERVICE_TESTS_LIST) {
-            IconButton(onClick = { onScreenChange(ActiveScreen.SERVICE_TEST_CREATION) }) {
-                Icon(
-                    imageVector = Icons.Default.AddCircle,
-                    contentDescription = "Add Service Test",
-                    tint = Color.White,
-                    modifier = Modifier.size(32.dp)
-                )
+            Row {
+                IconButton(onClick = { onScreenChange(ActiveScreen.SERVICE_TEST_HISTORY_ALL) }) {
+                    Icon(
+                        imageVector = Icons.Default.Menu,
+                        contentDescription = "Test history",
+                        tint = Color.White,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+
+                IconButton(onClick = { onScreenChange(ActiveScreen.SERVICE_TEST_CREATION) }) {
+                    Icon(
+                        imageVector = Icons.Default.AddCircle,
+                        contentDescription = "Add Service Test",
+                        tint = Color.White,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
             }
         } else {
             IconButton(onClick = { onScreenChange(ActiveScreen.SERVICE_TESTS_LIST) }) {
