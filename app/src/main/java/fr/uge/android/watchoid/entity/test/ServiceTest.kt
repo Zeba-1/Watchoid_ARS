@@ -13,5 +13,6 @@ class ServiceTest (
     var periodicity: Long = 0,
     var patern: String = "", // use to check the response of http test
     var paternType: PaternType = PaternType.CONTAINS,
-    var status: TestStatus = TestStatus.PENDING
+    var status: TestStatus = TestStatus.PENDING,
+    var lastTest: Long = 0,
 )

@@ -8,6 +8,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
+import fr.uge.android.watchoid.entity.test.TestReport
 
 @Dao
 interface ServiceTestDao {
@@ -25,4 +26,14 @@ interface ServiceTestDao {
 
     @Query("SELECT * FROM service_test")
     suspend fun getAllTests(): List<ServiceTest>
+
+    // Test report
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertTestReport(testReport: TestReport)
+
+    @Query("SELECT * FROM test_report WHERE testId = :testId")
+    suspend fun getTestReportByTestId(testId: Int): TestReport?
+
+    @Query("SELECT * FROM test_report")
+    suspend fun getAllTestReports(): List<TestReport>
 }
