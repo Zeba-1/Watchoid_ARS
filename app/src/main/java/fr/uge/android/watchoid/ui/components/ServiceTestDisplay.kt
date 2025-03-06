@@ -215,6 +215,40 @@ fun ServiceTestDetails(serviceTestId: Int, dao: ServiceTestDao, coroutineScope: 
                 )
             }
 
+            if (serviceTest.type == TestType.UDP || serviceTest.type == TestType.TCP) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Row {
+                    Text(
+                        text = "Port: ",
+                        fontSize = 18.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+
+                    Text(
+                        text = serviceTest.port.toString(),
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+                Row {
+                    Text(
+                        text = "Message to send: ",
+                        fontSize = 18.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+
+                    Text(
+                        text = serviceTest.message,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+
             if (serviceTest.type != TestType.PING) {
                 Spacer(modifier = Modifier.height(8.dp))
 
@@ -234,23 +268,6 @@ fun ServiceTestDetails(serviceTestId: Int, dao: ServiceTestDao, coroutineScope: 
                 )
             }
 
-            if (serviceTest.type == TestType.UDP || serviceTest.type == TestType.TCP) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Row {
-                    Text(
-                        text = "Port: ",
-                        fontSize = 18.sp,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-
-                    Text(
-                        text = serviceTest.port.toString(),
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            }
 
             Spacer(modifier = Modifier.height(16.dp))
             Spacer(modifier = Modifier.weight(1f))

@@ -57,6 +57,7 @@ fun ServiceTestForm(
     var paternType by remember { mutableStateOf(PaternType.CONTAINS) }
     var expanded by remember { mutableStateOf(false) }
     var port by remember { mutableStateOf(0) }
+    var message by remember { mutableStateOf("") }
 
     Column (
         modifier = Modifier
@@ -125,6 +126,24 @@ fun ServiceTestForm(
             }
         }
 
+        if (type == TestType.UDP || type == TestType.TCP) {
+            Spacer(modifier = Modifier.height(16.dp))
+            TextField(
+                value = port.toString(),
+                onValueChange = { port = it.toIntOrNull() ?: 0 },
+                label = { Text("Port") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+            TextField(
+                value = message,
+                onValueChange = { message = it },
+                label = { Text("Message to send") },
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+
         if (type != TestType.PING) {
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -172,15 +191,6 @@ fun ServiceTestForm(
             }
         }
 
-        if (type == TestType.UDP || type == TestType.TCP) {
-            TextField(
-                value = port.toString(),
-                onValueChange = { port = it.toIntOrNull() ?: 0 },
-                label = { Text("Port") },
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-
         Spacer(modifier = Modifier.height(16.dp))
 
         Button(onClick = {
@@ -192,7 +202,8 @@ fun ServiceTestForm(
                     status = TestStatus.PENDING,
                     port = port,
                     patern = patern,
-                    paternType = paternType
+                    paternType = paternType,
+                    message = message
                 )
                 coroutineScope.launch {
                     dao.insert(serviceTest)
