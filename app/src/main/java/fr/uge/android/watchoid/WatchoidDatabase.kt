@@ -6,7 +6,7 @@ import fr.uge.android.watchoid.entity.test.ServiceTest
 import androidx.room.Database
 import androidx.room.RoomDatabase
 
-@Database(entities = [ServiceTest::class], version = 5)
+@Database(entities = [ServiceTest::class], version = 6)
 abstract class WatchoidDatabase : RoomDatabase() {
     abstract fun serviceTestDao(): ServiceTestDao
 }
