@@ -4,7 +4,7 @@ import android.util.Log
 import fr.uge.android.watchoid.DAO.ServiceTestDao
 import fr.uge.android.watchoid.entity.test.PaternType
 import fr.uge.android.watchoid.entity.test.ServiceTest
-import fr.uge.android.watchoid.entity.test.TestReport
+import fr.uge.android.watchoid.entity.report.TestReport
 import fr.uge.android.watchoid.entity.test.TestStatus
 import fr.uge.android.watchoid.entity.test.TestType
 import kotlinx.coroutines.CoroutineScope

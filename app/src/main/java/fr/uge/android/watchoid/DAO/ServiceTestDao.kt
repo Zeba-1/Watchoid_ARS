@@ -8,7 +8,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
-import fr.uge.android.watchoid.entity.test.TestReport
+import fr.uge.android.watchoid.entity.report.TestReport
 
 @Dao
 interface ServiceTestDao {

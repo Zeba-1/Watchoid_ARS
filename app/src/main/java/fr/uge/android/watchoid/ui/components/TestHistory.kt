@@ -24,12 +24,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import fr.uge.android.watchoid.DAO.ServiceTestDao
-import fr.uge.android.watchoid.entity.test.TestReport
+import fr.uge.android.watchoid.entity.report.TestReport
 import fr.uge.android.watchoid.utils.DatePickerField
 import fr.uge.android.watchoid.utils.convertEpochToDate
 import kotlinx.coroutines.CoroutineScope
