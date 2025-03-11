@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -44,20 +45,35 @@ fun TestReportListScreen(coroutineScope: CoroutineScope, dao: ServiceTestDao) {
     var testsReports by remember { mutableStateOf<List<TestReport>>(emptyList()) }
     var startDate by remember { mutableStateOf<LocalDate?>(null) }
     var endDate by remember { mutableStateOf<LocalDate?>(null) }
+    var searchText by remember { mutableStateOf("") }
+    var testNames by remember { mutableStateOf<List<String>>(emptyList()) }
 
     LaunchedEffect(Unit) {
         coroutineScope.launch {
             testsReports = dao.getAllTestReports().reversed()
+            testNames = testsReports.map { testReport ->
+                val test = dao.getTestById(testReport.testId)
+                test?.name ?: "Unknown"
+            }
         }
     }
 
     val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd").withZone(ZoneId.systemDefault())
 
-    val filteredReports = testsReports.filter { report ->
-        val reportDate = Instant.ofEpochMilli(report.timestamp).atZone(ZoneId.systemDefault()).toLocalDate()
-        val start = startDate ?: LocalDate.MIN
-        val end = endDate ?: LocalDate.MAX
-        reportDate in start..end
+    val filteredReports = remember(searchText, startDate, endDate, testsReports, testNames) {
+        testsReports.zip(testNames).filter { (report, name) ->
+            val reportDate = Instant.ofEpochMilli(report.timestamp)
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate()
+
+            val start = startDate ?: LocalDate.MIN
+            val end = endDate ?: LocalDate.MAX
+
+            val matchesDate = reportDate in start..end
+            val matchesName = name.contains(searchText, ignoreCase = true)
+
+            matchesDate && matchesName
+        }.map { it.first }
     }
 
     Column(modifier = Modifier
@@ -76,9 +92,22 @@ fun TestReportListScreen(coroutineScope: CoroutineScope, dao: ServiceTestDao) {
                 formatter = formatter,
                 onDateSelected = { endDate = it }
             )
+            Spacer(modifier = Modifier.height(8.dp))
         }
         Spacer(modifier = Modifier.height(8.dp))
-        LazyColumn(modifier = Modifier.fillMaxSize()) {
+        Row {
+            // Barre de recherche par nom
+            OutlinedTextField(
+                value = searchText,
+                onValueChange = { searchText = it },
+                label = { Text("Rechercher un nom") },
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Liste des tests filtrés
+        LazyColumn {
             items(filteredReports) { testReport ->
                 TestReportItem(testReport, coroutineScope, dao)
             }
