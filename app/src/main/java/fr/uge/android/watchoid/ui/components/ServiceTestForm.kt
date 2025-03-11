@@ -9,12 +9,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Create
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Button
@@ -55,7 +50,6 @@ fun ServiceTestForm(
     var expandedPatern by remember { mutableStateOf(false) }
     var patern by remember { mutableStateOf("") }
     var paternType by remember { mutableStateOf(PaternType.CONTAINS) }
-    var expanded by remember { mutableStateOf(false) }
     var port by remember { mutableStateOf(0) }
     var message by remember { mutableStateOf("") }
 
