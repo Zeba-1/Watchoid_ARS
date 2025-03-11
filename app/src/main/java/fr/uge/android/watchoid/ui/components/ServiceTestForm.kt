@@ -22,6 +22,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
@@ -34,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import fr.uge.android.watchoid.DAO.ServiceTestDao
+import fr.uge.android.watchoid.entity.test.ConnectionType
 import fr.uge.android.watchoid.entity.test.PaternType
 import fr.uge.android.watchoid.entity.test.ServiceTest
 import fr.uge.android.watchoid.entity.test.TestStatus
@@ -57,7 +59,11 @@ fun ServiceTestForm(
     var paternType by remember { mutableStateOf(PaternType.CONTAINS) }
     var expanded by remember { mutableStateOf(false) }
     var port by remember { mutableStateOf(0) }
-    var message by remember { mutableStateOf("") }
+    var message by remember { mutableStateOf("")}
+    var batteryLevel by remember { mutableStateOf(0)}
+    var isNotification by remember { mutableStateOf(false)}
+    var connectionType by remember { mutableStateOf(ConnectionType.ALL)}
+
 
     Column (
         modifier = Modifier
@@ -189,11 +195,87 @@ fun ServiceTestForm(
                     }
                 }
             }
+
+        }
+
+        Column {
+            Slider(
+                value = batteryLevel.toFloat(),
+                onValueChange = { batteryLevel = it.toInt() },
+                valueRange = 0f..100f,
+                steps = 99,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Text(
+                text = "Min Battery Level: $batteryLevel%",
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+
+        Box {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = true }
+                    .padding(8.dp)
+            ) {
+                Text(
+                    text = "Connection type: ${connectionType.name}",
+                    modifier = Modifier.weight(1f)
+                )
+                Icon(
+                    imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                ConnectionType.entries.forEach { _connectionType ->
+                    DropdownMenuItem(
+                        text = { Text(_connectionType.name) },
+                        onClick = {
+                            connectionType = _connectionType
+                            expanded = false
+                        }
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        //enable notification or not
+        Box {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { isNotification = !isNotification }
+                    .padding(8.dp)
+            ) {
+                Text(
+                    text = "Notification: ${if (isNotification) "Enabled" else "Disabled"}",
+                    modifier = Modifier.weight(1f)
+                )
+                Icon(
+                    imageVector = if (isNotification) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Button(onClick = {
+        Button(
+            onClick = {
                 val serviceTest = ServiceTest(
                     name = name,
                     type = type,
@@ -203,7 +285,10 @@ fun ServiceTestForm(
                     port = port,
                     patern = patern,
                     paternType = paternType,
-                    message = message
+                    message = message,
+                    minBatteryLevel = batteryLevel,
+                    isNotification = false,
+                    connectionType = connectionType
                 )
                 coroutineScope.launch {
                     dao.insert(serviceTest)

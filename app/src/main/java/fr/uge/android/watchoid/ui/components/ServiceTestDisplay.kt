@@ -47,6 +47,7 @@ import fr.uge.android.watchoid.Action.ExecuteTest
 import fr.uge.android.watchoid.DAO.ServiceTestDao
 import fr.uge.android.watchoid.entity.test.TestStatus
 import fr.uge.android.watchoid.entity.test.TestType
+import fr.uge.android.watchoid.utils.deviceFunc
 import fr.uge.android.watchoid.utils.convertEpochToDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -215,6 +216,57 @@ fun ServiceTestDetails(serviceTestId: Int, dao: ServiceTestDao, coroutineScope: 
                 )
             }
 
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row {
+                Text(
+                    text = "Min battery level: ",
+                    fontSize = 18.sp,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                Text(
+                    text = serviceTest.minBatteryLevel.toString(),
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row {
+                Text(
+                    text = "Connection required: ",
+                    fontSize = 18.sp,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                Text(
+                    text = serviceTest.connectionType.toString(),
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row {
+                Text(
+                    text = "Notification: ",
+                    fontSize = 18.sp,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                Text(
+                    text = serviceTest.isNotification.toString(),
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+
             if (serviceTest.type == TestType.UDP || serviceTest.type == TestType.TCP) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Row {
@@ -280,7 +332,9 @@ fun ServiceTestDetails(serviceTestId: Int, dao: ServiceTestDao, coroutineScope: 
                     onClick = {
                         coroutineScope.launch {
                             isLoading = true
-                            ExecuteTest(serviceTest, coroutineScope, dao, true) {
+                            val batteryLevel = deviceFunc().getBatteryLevel(context)
+                            val connectionDevice = deviceFunc().getConnectionStatus(context)
+                            ExecuteTest(serviceTest, coroutineScope, dao, batteryLevel,connectionDevice ,true) {
                                 serviceTest = ServiceTest()
                                 isLoading = false
 

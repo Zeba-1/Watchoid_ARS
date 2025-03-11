@@ -36,4 +36,5 @@ interface ServiceTestDao {
 
     @Query("SELECT * FROM test_report")
     suspend fun getAllTestReports(): List<TestReport>
+
 }
