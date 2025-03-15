@@ -1,6 +1,7 @@
 package fr.uge.android.watchoid.ui.components
 
 import android.app.Activity
+import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -42,13 +43,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import fr.uge.android.watchoid.DAO.ServiceTestDao
 import fr.uge.android.watchoid.entity.report.TestReport
+import fr.uge.android.watchoid.entity.test.PaternType
 import fr.uge.android.watchoid.entity.test.ServiceTest
+import fr.uge.android.watchoid.entity.test.TestStatus
+import fr.uge.android.watchoid.entity.test.TestType
 import fr.uge.android.watchoid.utils.DatePickerField
 import fr.uge.android.watchoid.utils.convertEpochToDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import org.json.JSONArray
 import java.io.InputStream
-import java.io.OutputStream
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -65,6 +69,7 @@ fun TestReportListScreen(coroutineScope: CoroutineScope, dao: ServiceTestDao) {
     var filterMode by remember { mutableStateOf("ALL") } // "ALL", "OK", "KO"
     var isImportCompleted by remember { mutableStateOf(false) }
     var latestID by remember { mutableStateOf(0) }
+    var listTest by remember { mutableStateOf<List<ServiceTest>>(emptyList()) }
 
     LaunchedEffect(Unit) {
         coroutineScope.launch {
@@ -74,6 +79,7 @@ fun TestReportListScreen(coroutineScope: CoroutineScope, dao: ServiceTestDao) {
                 test?.name ?: "Unknown"
             }
             latestID = dao.getLastTestId()!!
+            listTest = dao.getAllTests();
         }
     }
 
@@ -120,7 +126,7 @@ fun TestReportListScreen(coroutineScope: CoroutineScope, dao: ServiceTestDao) {
         contract = ActivityResultContracts.OpenDocument(),
         onResult = { uri ->
             uri?.let {
-                reports = readFileAndProcessReports(contextRead, it, dao, coroutineScope)  // Lire et traiter le fichier sélectionné
+                reports = readFileAndProcessReports(contextRead, it, dao, coroutineScope, listTest)  // Lire et traiter le fichier sélectionné
                 val reportsWithIds = reports.map { report ->
                     // Ajouter un testId unique en l'incrémentant à chaque nouveau rapport
                     val newTestReport = report.copy(testId = latestID)
@@ -144,7 +150,7 @@ fun TestReportListScreen(coroutineScope: CoroutineScope, dao: ServiceTestDao) {
                     isImportCompleted = false
                 }
             }
-            var allReports = dao.getAllTestReports()
+            val allReports = dao.getAllTestReports()
             allReports.toMutableList().addAll(reports)
             coroutineScope.launch {
                 testsReports = allReports.reversed()
@@ -311,23 +317,6 @@ fun TestReportItem(testReport: TestReport, coroutineScope: CoroutineScope, dao: 
 }
 
 @Composable
-fun getReportWithNames(dao: ServiceTestDao, testReports: List<TestReport>): List<Pair<TestReport, String>> {
-    var reportWithNames by remember { mutableStateOf<List<Pair<TestReport, String>>>(emptyList()) }
-
-    LaunchedEffect(testReports) {
-        val reports = testReports.map { report ->
-            val test = dao.getTestById(report.testId)
-            val testName = test?.name ?: "Unknown"
-            report to testName
-
-        }
-        reportWithNames = reports
-    }
-
-    return reportWithNames
-}
-
-@Composable
 fun getReportWithAllInfo(dao: ServiceTestDao, testReports: List<TestReport>): Map<ServiceTest?, List<TestReport>> {
     var reportWithAllInfo by remember { mutableStateOf<Map<ServiceTest?, List<TestReport>>>(emptyMap()) }
 
@@ -349,28 +338,30 @@ fun exportToFile(context: Context, uri: Uri, testReportsWithAllInfo : Map<Servic
 
     testReportsWithAllInfo.entries.forEachIndexed { index, (test, reports) ->
         jsonBuilder.append("\n{")
+        jsonBuilder.append("\"name\": ${test?.name}, \n")
         jsonBuilder.append("\"port\": ${test?.port},\n")
-        jsonBuilder.append("\"name\": \"${test?.name ?: "Unknown"}\",\n")
-        jsonBuilder.append("\"type\": ${test?.type},\n")
-        jsonBuilder.append("\"target\": ${test?.target},\n")
+        jsonBuilder.append("\"message\": \"${test?.message?.takeIf { it.isNotEmpty() } ?: "unknown"}\",\n")
+        jsonBuilder.append("\"type\": \"${test?.type}\",\n")
+        jsonBuilder.append("\"target\": \"${test?.target}\",\n")
         jsonBuilder.append("\"periodicity\": ${test?.periodicity},\n")
-        jsonBuilder.append("\"patern\": ${test?.patern ?: "null"},\n")
-        jsonBuilder.append("\"paternType\": ${test?.paternType},\n")
-        jsonBuilder.append("\"message\": ${test?.message ?: "null"},\n")
-        jsonBuilder.append("\"status\": ${test?.status},\n")
+        jsonBuilder.append("\"patern\": \"${test?.patern?.takeIf { it.isNotEmpty() } ?: "null"}\",\n")
+        jsonBuilder.append("\"paternType\": \"${test?.paternType}\",\n")
+        jsonBuilder.append("\"message\": \"${test?.message?.takeIf { it.isNotEmpty() } ?: "null"}\",\n")
+        jsonBuilder.append("\"status\": \"${test?.status}\",\n")
         jsonBuilder.append("\"lastTest\": ${test?.lastTest},\n")
 
         jsonBuilder.append("\"reports\": [\n")
         reports.forEachIndexed { reportIndex, report ->
             jsonBuilder.append("\t{")
             jsonBuilder.append("\"reportId\": ${report.testId},\n")
-            jsonBuilder.append("\t\"testOk\": ${report.isTestOk},\n")
+            jsonBuilder.append("\t\"testOk\": \"${report.isTestOk}\",\n")
             jsonBuilder.append("\t\"responseTime\": ${report.responseTime},\n")
             jsonBuilder.append("\t\"info\": \"${report.info}\",\n")
             jsonBuilder.append("\t\"timestamp\": ${report.timestamp}")
             jsonBuilder.append("}")
 
             if (reportIndex != reports.size - 1) jsonBuilder.append(",")
+            jsonBuilder.append("\n")
         }
         jsonBuilder.append("]")
 
@@ -393,8 +384,10 @@ fun exportToFile(context: Context, uri: Uri, testReportsWithAllInfo : Map<Servic
 }
 
 // Fonction pour lire le fichier et l'ajouter à la base de données
-fun readFileAndProcessReports(context : Context, uri: Uri, dao: ServiceTestDao, coroutineScope : CoroutineScope): List<TestReport> {
+fun readFileAndProcessReports(context : Context, uri: Uri, dao: ServiceTestDao, coroutineScope : CoroutineScope, listTest: List<ServiceTest>): List<TestReport> {
+    /*
     try {
+
         val inputStream: InputStream? = context.contentResolver.openInputStream(uri)
         val fileContent = inputStream?.bufferedReader().use { it?.readText() }
 
@@ -412,6 +405,125 @@ fun readFileAndProcessReports(context : Context, uri: Uri, dao: ServiceTestDao, 
         e.printStackTrace()
     }
     return emptyList();
+    */
+
+    val mapImportFound: MutableMap<ServiceTest, MutableList<TestReport>> = mutableMapOf()
+
+    try {
+
+        // Lire le contenu du fichier
+        val inputStream = context.contentResolver.openInputStream(uri)
+        val jsonContent = inputStream?.bufferedReader().use { it?.readText() } ?: return emptyList()
+
+        // Parser le JSON manuellement
+        val jsonArray = JSONArray(jsonContent)
+
+        for (i in 0 until jsonArray.length()) {
+            val testJson = jsonArray.getJSONObject(i)
+
+            // Extraction des infos du test
+            val name = testJson.optString("name", "Unknown")
+            val port = testJson.optInt("port", 0)
+            val type = testJson.optString("type", "N/A")
+            val target = testJson.optString("target", "N/A")
+            val periodicity = testJson.optInt("periodicity", 0)
+            val pattern = testJson.optString("patern", "")
+            val patternType = testJson.optString("paternType", "")
+            val message = testJson.optString("message", "")
+            val status = testJson.optString("status", "")
+            val lastTest = testJson.optLong("lastTest", 0)
+
+            val serviceTest = ServiceTest(
+                id = 0,  // Laisser la base générer l'ID
+                name = name,
+                port = port,
+                type = parsingType(type),
+                target = target,
+                periodicity = periodicity.toLong(),
+                patern = pattern,
+                paternType = parsingPaternType(patternType),
+                message = message,
+                status = parsingStatus(status),
+                lastTest = lastTest
+            )
+            // Vérifier si le test existe déjà
+            val existingTest = listTest.find { it.name == serviceTest.name || it.lastTest == serviceTest.lastTest  }
+            val testKey = existingTest ?: serviceTest
+
+            Log.i("Import parsing testExists ?", existingTest.toString())
+
+            if (existingTest == null) {
+                Log.i("Import parsing", "On ne devrait jamais être la pour l'instant")
+                // Créer un nouveau ServiceTest si inexistant
+                // ON SAUVEGARDE ON INSERA PLUS TARD
+                // dao.insertServiceTest(existingTest)
+                // ON DOIT RÉCUPÉRER L'ID pour les RAPPORTS
+                // existingTest = dao.getTestByName(name)  // Récupérer l'ID après insertion
+            }
+
+            // Ajouter les rapports liés au test
+            val reportsArray = testJson.optJSONArray("reports") ?: JSONArray()
+            val reports = mutableListOf<TestReport>()
+
+            for (j in 0 until reportsArray.length()) {
+                val reportJson = reportsArray.getJSONObject(j)
+
+                val isTestOk = reportJson.optBoolean("testOk", false)
+                val responseTime = reportJson.optLong("responseTime", 0)
+                val info = reportJson.optString("info", "")
+                val timestamp = reportJson.optLong("timestamp", 0)
+
+                val testReport = TestReport(
+                    testId = testKey.id,
+                    isTestOk = isTestOk,
+                    responseTime = responseTime,
+                    info = info,
+                    timestamp = timestamp
+                )
+                // ON SAUVEGARDE ON AJOUTE PLUS TARD
+                // dao.insertTestReport(testReport)
+            }
+            mapImportFound.merge(testKey, reports) { existingReports, newReports ->
+                existingReports.apply { addAll(newReports) }
+            }
+        }
+
+        Log.i("Fin Import", "Import terminé avec succès ! 🚀")
+        Log.i("Fin Import", mapImportFound.toString())
+    } catch (e: Exception) {
+        e.printStackTrace()
+        println("Erreur lors de l'import : ${e.message}")
+    }
+    return emptyList()
+}
+
+fun parsingType(elementToParse: String): TestType {
+    return when (elementToParse) {
+        "HTTP" -> TestType.HTTP
+        "PING" -> TestType.PING
+        "UDP" -> TestType.UDP
+        "TCP" -> TestType.TCP
+        else -> throw IllegalArgumentException("type inconnu: $elementToParse")
+    }
+}
+
+fun parsingPaternType(elementToParse: String): PaternType {
+    return when(elementToParse) {
+        "CONTAINS" -> PaternType.CONTAINS
+        "NOT_CONTAINS" -> PaternType.NOT_CONTAINS
+        "EQUALS" -> PaternType.EQUALS
+        "REGEX" -> PaternType.REGEX
+        else -> throw IllegalArgumentException("paternType inconnu: $elementToParse")
+    }
+}
+
+fun parsingStatus(elementToParse: String): TestStatus {
+    return when(elementToParse) {
+        "PENDING" -> TestStatus.PENDING
+        "SUCCESS" -> TestStatus.SUCCESS
+        "FAILURE" -> TestStatus.FAILURE
+        else -> throw IllegalArgumentException("status inconnu: $elementToParse")
+    }
 }
 
 // Fonction pour analyser chaque bloc et créer un TestReport
@@ -420,8 +532,6 @@ fun createTestReportFromBlock(block: String): TestReport? {
     if (lines.size < 5) return null // Si le bloc est incomplet, ignorer ce bloc
 
     try {
-        // Extraire les valeurs des lignes
-        val nameLine = lines[0]
         val isTestOkLine = if (lines[1] == "Test OK") true else false
         val executionTimeLine = lines[2]
         val responseTimeLine = lines[3]
