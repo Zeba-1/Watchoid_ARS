@@ -6,7 +6,6 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.util.Log
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
@@ -41,7 +40,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import fr.uge.android.watchoid.Action.ExecuteTest
 import fr.uge.android.watchoid.DAO.ServiceTestDao
 import fr.uge.android.watchoid.entity.report.TestReport
 import fr.uge.android.watchoid.entity.test.ServiceTest
@@ -103,7 +101,7 @@ fun TestReportListScreen(coroutineScope: CoroutineScope, dao: ServiceTestDao) {
         }.map { it.first }
     }
 
-    val filteredReportsWithName = getReportWithNames(dao, filteredReports)
+    val filteredReportsWithAllInfo = getReportWithAllInfo(dao, filteredReports)
     val contextWrite = LocalContext.current
     // Déclarer le lanceur de fichier au niveau du composable (pas dans le onClick)
     val exportLauncher = rememberLauncherForActivityResult(
@@ -111,12 +109,12 @@ fun TestReportListScreen(coroutineScope: CoroutineScope, dao: ServiceTestDao) {
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
             result.data?.data?.let { uri ->
-                exportToFile(contextWrite, uri, filteredReportsWithName)
+                exportToFile(contextWrite, uri, filteredReportsWithAllInfo)
             }
         }
     }
 
-    var reports = emptyList<TestReport>();
+    var reports = emptyList<TestReport>()
     val contextRead = LocalContext.current
     val importLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
@@ -129,8 +127,9 @@ fun TestReportListScreen(coroutineScope: CoroutineScope, dao: ServiceTestDao) {
                     latestID += 1  // Incrémente l'ID pour le prochain test
                     newTestReport
                 }
-                testsReports = reportsWithIds
-                isImportCompleted = true;
+
+                reports = reportsWithIds
+                isImportCompleted = true
             }
         }
     )
@@ -142,15 +141,19 @@ fun TestReportListScreen(coroutineScope: CoroutineScope, dao: ServiceTestDao) {
             reports.forEach { testReport ->
                 coroutineScope.launch {
                     dao.insertTestReport(testReport) // Utilise 'testReport' ici
-                    testsReports = dao.getAllTestReports().reversed()
-                    testNames = testsReports.map { testReport ->
-                        val test = dao.getTestById(testReport.testId)
-                        test?.name ?: "Unknown"
-                    }
                     isImportCompleted = false
                 }
             }
-
+            var allReports = dao.getAllTestReports()
+            allReports.toMutableList().addAll(reports)
+            coroutineScope.launch {
+                testsReports = allReports.reversed()
+                Log.i("Get ALL ID", testsReports.toString())
+                testNames = testsReports.map { testReport ->
+                    val test = dao.getTestById(testReport.testId)
+                    test?.name ?: "Unknown"
+                }
+            }
         }
     }
 
@@ -316,6 +319,7 @@ fun getReportWithNames(dao: ServiceTestDao, testReports: List<TestReport>): List
             val test = dao.getTestById(report.testId)
             val testName = test?.name ?: "Unknown"
             report to testName
+
         }
         reportWithNames = reports
     }
@@ -323,33 +327,68 @@ fun getReportWithNames(dao: ServiceTestDao, testReports: List<TestReport>): List
     return reportWithNames
 }
 
-fun exportToFile(context: Context, uri: Uri, testReportsWithNames : List<Pair<TestReport, String>>) {
-    try {
-        context.contentResolver.openOutputStream(uri)?.use { outputStream: OutputStream ->
-            val reportString = "Test: import_1\n" +
-                    "Test OK\n" +
-                    "Execution Time: 0001010101010\n" +
-                    "Response Time: 64\n" +
-                    "Info: import_1 no test\n" +
-                    "-".repeat(20) + "\n"
+@Composable
+fun getReportWithAllInfo(dao: ServiceTestDao, testReports: List<TestReport>): Map<ServiceTest?, List<TestReport>> {
+    var reportWithAllInfo by remember { mutableStateOf<Map<ServiceTest?, List<TestReport>>>(emptyMap()) }
 
-            outputStream.write("$reportString\n".toByteArray())
-            testReportsWithNames.forEach { (report, name) ->
-                val isTestOk = if (report.isTestOk) "Test OK" else "Test KO"
-/*
-                val reportString = "Test: $name \n" +
-                                    isTestOk + "\n" +
-                                    "Execution Time: ${report.timestamp} \n" +
-                                    "Response Time: ${report.responseTime} \n" +
-                                    "Info: ${report.info}\n" +
-                                    "-".repeat(20) + "\n"
-*/
+    LaunchedEffect(testReports) {
+        val allTests = dao.getAllTests().associateBy { it.id }
 
-            }
+// Regroupe les TestReports par ServiceTest
+        val reportsByTest: Map<ServiceTest?, List<TestReport>> = testReports.groupBy { report ->
+            allTests[report.testId]
         }
-        println("Fichier exporté avec succès !")
+        reportWithAllInfo = reportsByTest
+    }
+    return reportWithAllInfo
+}
+
+fun exportToFile(context: Context, uri: Uri, testReportsWithAllInfo : Map<ServiceTest?, List<TestReport>>) {
+    val jsonBuilder = StringBuilder()
+    jsonBuilder.append("[")
+
+    testReportsWithAllInfo.entries.forEachIndexed { index, (test, reports) ->
+        jsonBuilder.append("\n{")
+        jsonBuilder.append("\"port\": ${test?.port},\n")
+        jsonBuilder.append("\"name\": \"${test?.name ?: "Unknown"}\",\n")
+        jsonBuilder.append("\"type\": ${test?.type},\n")
+        jsonBuilder.append("\"target\": ${test?.target},\n")
+        jsonBuilder.append("\"periodicity\": ${test?.periodicity},\n")
+        jsonBuilder.append("\"patern\": ${test?.patern ?: "null"},\n")
+        jsonBuilder.append("\"paternType\": ${test?.paternType},\n")
+        jsonBuilder.append("\"message\": ${test?.message ?: "null"},\n")
+        jsonBuilder.append("\"status\": ${test?.status},\n")
+        jsonBuilder.append("\"lastTest\": ${test?.lastTest},\n")
+
+        jsonBuilder.append("\"reports\": [\n")
+        reports.forEachIndexed { reportIndex, report ->
+            jsonBuilder.append("\t{")
+            jsonBuilder.append("\"reportId\": ${report.testId},\n")
+            jsonBuilder.append("\t\"testOk\": ${report.isTestOk},\n")
+            jsonBuilder.append("\t\"responseTime\": ${report.responseTime},\n")
+            jsonBuilder.append("\t\"info\": \"${report.info}\",\n")
+            jsonBuilder.append("\t\"timestamp\": ${report.timestamp}")
+            jsonBuilder.append("}")
+
+            if (reportIndex != reports.size - 1) jsonBuilder.append(",")
+        }
+        jsonBuilder.append("]")
+
+        jsonBuilder.append("}")
+
+        if (index != testReportsWithAllInfo.size - 1) jsonBuilder.append(",")
+    }
+
+    jsonBuilder.append("]")
+    // Écriture dans le fichier
+    try {
+        context.contentResolver.openOutputStream(uri)?.use { outputStream ->
+            outputStream.write(jsonBuilder.toString().toByteArray())
+        }
+        println("Fichier exporté avec succès ! 🚀")
     } catch (e: Exception) {
         e.printStackTrace()
+        println("Erreur lors de l'export : ${e.message}")
     }
 }
 
