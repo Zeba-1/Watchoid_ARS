@@ -4,5 +4,5 @@ enum class TestType {
     HTTP,
     PING,
     UDP,
-    TCP,
+    TCP;
 }
