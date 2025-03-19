@@ -22,12 +22,17 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.LaunchedEffect
@@ -55,9 +60,134 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun ServiceTestList(serviceTests: List<ServiceTest>, onServiceTestClick: (ServiceTest) -> Unit = {}) {
-    LazyColumn {
-        items(serviceTests) { serviceTest ->
-            ServiceTestCard(serviceTest, onServiceTestClick)
+    var searchText by remember { mutableStateOf("") }
+    var expandedStatus by remember { mutableStateOf(false) }
+    var expandedType by remember { mutableStateOf(false) }
+    var type by remember { mutableStateOf<TestType?>(null) }
+    var status by remember { mutableStateOf<TestStatus?>(null) }
+
+    val filterTest = remember(searchText, serviceTests, type, status) {
+        serviceTests.filter { serviceTest ->
+            val matchesName = serviceTest.name.contains(searchText, ignoreCase = true)
+            val matchesType = type == null || serviceTest.type == type
+            val matchesStatus = status == null || serviceTest.status == status
+
+            matchesName && matchesType && matchesStatus
+        }
+    }
+
+    Column(modifier = Modifier.fillMaxSize()
+        .padding(16.dp)) {
+        Row {
+            // Barre de recherche par nom
+            OutlinedTextField(
+                value = searchText,
+                onValueChange = { searchText = it },
+                label = { Text("Rechercher par nom") },
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+        Spacer(modifier = Modifier.padding(8.dp))
+        Box {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expandedType = true }
+                    .padding(8.dp)
+            ) {
+                Text(
+                    text = "Type: ${type?.name ?: "ALL"}",
+                    modifier = Modifier.weight(1f)
+                )
+                Icon(
+                    imageVector = if (expandedType) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+            DropdownMenu(
+                expanded = expandedType,
+                onDismissRequest = { expandedType = false }
+            ) {
+                // Option "ALL" pour tout afficher
+                DropdownMenuItem(
+                    text = { Text("ALL") },
+                    onClick = {
+                        type = null // Réinitialisation du filtre
+                        expandedType = false
+                    }
+                )
+                TestType.entries.forEach { testType ->
+                    DropdownMenuItem(
+                        text = { Text(testType.name) },
+                        onClick = {
+                            type = testType
+                            expandedType = false
+                        }
+                    )
+                }
+            }
+        }
+        Spacer(modifier = Modifier.padding(8.dp))
+        Box {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expandedStatus = true }
+                    .padding(8.dp)
+            ) {
+                Text(
+                    text = "Type: ${status?.name ?: "ALL"}",
+                    modifier = Modifier.weight(1f)
+                )
+                Icon(
+                    imageVector = if (expandedStatus) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+            DropdownMenu(
+                expanded = expandedStatus,
+                onDismissRequest = { expandedStatus = false }
+            ) {
+                // Option "ALL" pour tout afficher
+                DropdownMenuItem(
+                    text = { Text("ALL") },
+                    onClick = {
+                        status = null // Réinitialisation du filtre
+                        expandedType = false
+                    }
+                )
+                TestStatus.entries.forEach { testStatus ->
+                    DropdownMenuItem(
+                        text = { Text(testStatus.name) },
+                        onClick = {
+                            status = testStatus
+                            expandedStatus = false
+                        }
+                    )
+                }
+            }
+        }
+        Spacer(modifier = Modifier.padding(8.dp))
+        Button(
+            onClick = {
+                searchText = ""
+                type = null
+                status = null
+            },
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+        ) {
+            Text(text = "Réinitialiser le filtre", color = Color.White, fontWeight = FontWeight.Bold)
+        }
+        Spacer(modifier = Modifier.padding(8.dp))
+        LazyColumn {
+            items(filterTest) { serviceTest ->
+                ServiceTestCard(serviceTest, onServiceTestClick)
+            }
         }
     }
 }
