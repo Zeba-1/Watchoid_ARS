@@ -177,7 +177,7 @@ fun TestReportItem(testReport: TestReport, coroutineScope: CoroutineScope, dao: 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp, horizontal = 16.dp)
+            .padding(vertical = 8.dp)
             .background(backgroundColor, RoundedCornerShape(8.dp))
     ) {
         Column (modifier = Modifier.padding(16.dp)) {
