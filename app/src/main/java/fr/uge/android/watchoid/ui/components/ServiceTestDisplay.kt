@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import fr.uge.android.watchoid.entity.test.ServiceTest
 import androidx.compose.runtime.Composable
@@ -24,6 +25,8 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -31,6 +34,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -52,6 +56,8 @@ import fr.uge.android.watchoid.Action.ExecuteTest
 import fr.uge.android.watchoid.DAO.ServiceTestDao
 import fr.uge.android.watchoid.entity.test.TestStatus
 import fr.uge.android.watchoid.entity.test.TestType
+import fr.uge.android.watchoid.ui.ActiveScreen
+import fr.uge.android.watchoid.utils.DropDown
 import fr.uge.android.watchoid.utils.deviceFunc
 import fr.uge.android.watchoid.utils.convertEpochToDate
 import kotlinx.coroutines.CoroutineScope
@@ -61,8 +67,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun ServiceTestList(serviceTests: List<ServiceTest>, onServiceTestClick: (ServiceTest) -> Unit = {}) {
     var searchText by remember { mutableStateOf("") }
-    var expandedStatus by remember { mutableStateOf(false) }
-    var expandedType by remember { mutableStateOf(false) }
+
+    var moreFilter by remember { mutableStateOf(false) }
     var type by remember { mutableStateOf<TestType?>(null) }
     var status by remember { mutableStateOf<TestStatus?>(null) }
 
@@ -75,115 +81,51 @@ fun ServiceTestList(serviceTests: List<ServiceTest>, onServiceTestClick: (Servic
             matchesName && matchesType && matchesStatus
         }
     }
+    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        // FILTERS
 
-    Column(modifier = Modifier.fillMaxSize()
-        .padding(16.dp)) {
-        Row {
+        Row (
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ) {
             // Barre de recherche par nom
             OutlinedTextField(
                 value = searchText,
                 onValueChange = { searchText = it },
                 label = { Text("Rechercher par nom") },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.weight(1f)
             )
-        }
-        Spacer(modifier = Modifier.padding(8.dp))
-        Box {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { expandedType = true }
-                    .padding(8.dp)
-            ) {
-                Text(
-                    text = "Type: ${type?.name ?: "ALL"}",
-                    modifier = Modifier.weight(1f)
-                )
+            IconButton(onClick = { moreFilter = !moreFilter }) {
                 Icon(
-                    imageVector = if (expandedType) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = "More filters",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(32.dp)
                 )
-            }
-            DropdownMenu(
-                expanded = expandedType,
-                onDismissRequest = { expandedType = false }
-            ) {
-                // Option "ALL" pour tout afficher
-                DropdownMenuItem(
-                    text = { Text("ALL") },
-                    onClick = {
-                        type = null // Réinitialisation du filtre
-                        expandedType = false
-                    }
-                )
-                TestType.entries.forEach { testType ->
-                    DropdownMenuItem(
-                        text = { Text(testType.name) },
-                        onClick = {
-                            type = testType
-                            expandedType = false
-                        }
-                    )
-                }
             }
         }
-        Spacer(modifier = Modifier.padding(8.dp))
-        Box {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { expandedStatus = true }
-                    .padding(8.dp)
+
+        if (moreFilter) {
+            Spacer(modifier = Modifier.padding(8.dp))
+            DropDown("Type", TestType.entries.toList(), type) { type = it }
+            Spacer(modifier = Modifier.padding(8.dp))
+            DropDown("Status", TestStatus.entries.toList(), status) { status = it }
+            Spacer(modifier = Modifier.padding(8.dp))
+            Button(
+                onClick = {
+                    searchText = ""
+                    type = null
+                    status = null
+                },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
             ) {
-                Text(
-                    text = "Type: ${status?.name ?: "ALL"}",
-                    modifier = Modifier.weight(1f)
-                )
-                Icon(
-                    imageVector = if (expandedStatus) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
-            DropdownMenu(
-                expanded = expandedStatus,
-                onDismissRequest = { expandedStatus = false }
-            ) {
-                // Option "ALL" pour tout afficher
-                DropdownMenuItem(
-                    text = { Text("ALL") },
-                    onClick = {
-                        status = null // Réinitialisation du filtre
-                        expandedType = false
-                    }
-                )
-                TestStatus.entries.forEach { testStatus ->
-                    DropdownMenuItem(
-                        text = { Text(testStatus.name) },
-                        onClick = {
-                            status = testStatus
-                            expandedStatus = false
-                        }
-                    )
-                }
+                Text(text = "Réinitialiser le filtre", color = Color.White, fontWeight = FontWeight.Bold)
             }
         }
+
         Spacer(modifier = Modifier.padding(8.dp))
-        Button(
-            onClick = {
-                searchText = ""
-                type = null
-                status = null
-            },
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
-        ) {
-            Text(text = "Réinitialiser le filtre", color = Color.White, fontWeight = FontWeight.Bold)
-        }
-        Spacer(modifier = Modifier.padding(8.dp))
+        // TESTS LIST
         LazyColumn {
             items(filterTest) { serviceTest ->
                 ServiceTestCard(serviceTest, onServiceTestClick)
@@ -197,7 +139,7 @@ fun ServiceTestCard(serviceTest: ServiceTest, onClick: (ServiceTest) -> Unit = {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp, horizontal = 16.dp)
+            .padding(vertical = 8.dp)
             .background(Color(0x25485C91), RoundedCornerShape(8.dp))
             .clickable(onClick = { onClick(serviceTest) })
     ) {

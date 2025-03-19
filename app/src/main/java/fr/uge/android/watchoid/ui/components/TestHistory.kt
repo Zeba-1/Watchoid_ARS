@@ -12,11 +12,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -26,6 +31,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -34,6 +40,7 @@ import androidx.compose.ui.unit.sp
 import fr.uge.android.watchoid.DAO.ServiceTestDao
 import fr.uge.android.watchoid.entity.report.TestReport
 import fr.uge.android.watchoid.utils.DatePickerField
+import fr.uge.android.watchoid.utils.DropDown
 import fr.uge.android.watchoid.utils.convertEpochToDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -46,6 +53,8 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun TestReportListScreen(coroutineScope: CoroutineScope, dao: ServiceTestDao) {
     var testsReports by remember { mutableStateOf<List<TestReport>>(emptyList()) }
+
+    var moreFilter by remember { mutableStateOf(false) }
     var startDate by remember { mutableStateOf<LocalDate?>(null) }
     var endDate by remember { mutableStateOf<LocalDate?>(null) }
     var searchText by remember { mutableStateOf("") }
@@ -88,67 +97,57 @@ fun TestReportListScreen(coroutineScope: CoroutineScope, dao: ServiceTestDao) {
 
     Column(modifier = Modifier
         .fillMaxSize()
-        .padding(16.dp)) {
-        Row {
-            DatePickerField(
-                label = "Start Date: ",
-                selectedDate = startDate,
-                formatter = formatter,
-                onDateSelected = { startDate = it }
-            )
-            DatePickerField(
-                label = "End Date: ",
-                selectedDate = endDate,
-                formatter = formatter,
-                onDateSelected = { endDate = it }
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        Row {
+        .padding(16.dp)
+    ) {
+        // FILTER
+        Row (
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ) {
             // Barre de recherche par nom
             OutlinedTextField(
                 value = searchText,
                 onValueChange = { searchText = it },
                 label = { Text("Rechercher par nom") },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.weight(1f)
             )
+            IconButton(onClick = { moreFilter = !moreFilter }) {
+                Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = "More filters",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(32.dp)
+                )
+            }
         }
+        if (moreFilter) {
+            Spacer(modifier = Modifier.height(8.dp))
+            // Boutons de filtrage
+            DropDown("Status", listOf("OK", "KO"), filterMode) {
+                filterMode = it ?: "ALL"
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Row (
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                DatePickerField(
+                    label = "Start Date: ",
+                    selectedDate = startDate,
+                    formatter = formatter,
+                    onDateSelected = { startDate = it }
+                )
+                DatePickerField(
+                    label = "End Date: ",
+                    selectedDate = endDate,
+                    formatter = formatter,
+                    onDateSelected = { endDate = it }
+                )
+            }
+        }
+
+        // FILTERED REPORTS
         Spacer(modifier = Modifier.height(8.dp))
-        // Boutons de filtrage
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            Button(
-                onClick = { filterMode = "ALL" },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (filterMode == "ALL") Color.Gray else Color.LightGray
-                )
-            ) {
-                Text("Tous",
-                    color = Color.Black)
-            }
-            Button(
-                onClick = { filterMode = "OK" },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (filterMode == "OK") Color(0xFFDFF0D8) else Color.LightGray
-                )
-            ) {
-                Text(text = "Tests OK",
-                    color = Color.Black)
-            }
-            Button(
-                onClick = { filterMode = "KO" },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (filterMode == "KO") Color(0xFFF2DEDE) else Color.LightGray
-                )
-            ) {
-                Text("Tests KO",
-                    color = Color.Black)
-            }
-        }
-        // Liste des tests filtrés
         LazyColumn {
             items(filteredReports) { testReport ->
                 TestReportItem(testReport, coroutineScope, dao)
@@ -177,7 +176,7 @@ fun TestReportItem(testReport: TestReport, coroutineScope: CoroutineScope, dao: 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp, horizontal = 16.dp)
+            .padding(vertical = 8.dp)
             .background(backgroundColor, RoundedCornerShape(8.dp))
     ) {
         Column (modifier = Modifier.padding(16.dp)) {
