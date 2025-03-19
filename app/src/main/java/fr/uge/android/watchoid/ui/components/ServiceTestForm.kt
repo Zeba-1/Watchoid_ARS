@@ -50,6 +50,7 @@ fun ServiceTestForm(
     var periodicity by remember { mutableLongStateOf(0L) }
     var expandedType by remember { mutableStateOf(false) }
     var expandedPatern by remember { mutableStateOf(false) }
+    var expandedConnectionType by remember { mutableStateOf(false) }
     var patern by remember { mutableStateOf("") }
     var paternType by remember { mutableStateOf(PaternType.CONTAINS) }
     var port by remember { mutableStateOf(0) }
@@ -214,7 +215,7 @@ fun ServiceTestForm(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { expanded = true }
+                    .clickable { expandedConnectionType = true }
                     .padding(8.dp)
             ) {
                 Text(
@@ -222,21 +223,21 @@ fun ServiceTestForm(
                     modifier = Modifier.weight(1f)
                 )
                 Icon(
-                    imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                    imageVector = if (expandedConnectionType) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary
                 )
             }
             DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false }
+                expanded = expandedConnectionType,
+                onDismissRequest = { expandedConnectionType = false }
             ) {
                 ConnectionType.entries.forEach { _connectionType ->
                     DropdownMenuItem(
                         text = { Text(_connectionType.name) },
                         onClick = {
                             connectionType = _connectionType
-                            expanded = false
+                            expandedConnectionType = false
                         }
                     )
                 }
