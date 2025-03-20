@@ -11,6 +11,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -53,6 +54,7 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import fr.uge.android.watchoid.DAO.ServiceTestDao
 import fr.uge.android.watchoid.entity.test.ServiceTest
+import fr.uge.android.watchoid.games.seb.ChessGameScreen
 import fr.uge.android.watchoid.ui.ActiveScreen
 import fr.uge.android.watchoid.ui.components.ServiceTestDetails
 import fr.uge.android.watchoid.ui.components.ServiceTestForm
@@ -136,12 +138,22 @@ fun MainView(modifier: Modifier = Modifier, dao: ServiceTestDao) {
                 TestReportListScreen(coroutineScope, dao)
             }
             ActiveScreen.SERVICE_TEST_HISTORY_DETAILS -> TODO()
+            ActiveScreen.JEU_SEB -> {
+                ChessGameScreen()
+            }
         }
     }
 }
 
 @Composable
 fun TopBar(activeScreen: ActiveScreen, onScreenChange : (ActiveScreen) -> Unit) {
+    var nbClick by remember { mutableStateOf(0) }
+
+    if (nbClick > 5) {
+        nbClick = 0
+        onScreenChange(ActiveScreen.JEU_SEB)
+    }
+
     Row(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
@@ -149,6 +161,7 @@ fun TopBar(activeScreen: ActiveScreen, onScreenChange : (ActiveScreen) -> Unit) 
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.primary)
             .padding(16.dp)
+            .clickable { nbClick++ }
     ) {
         Text(
             text = when (activeScreen) {
@@ -157,6 +170,7 @@ fun TopBar(activeScreen: ActiveScreen, onScreenChange : (ActiveScreen) -> Unit) 
                 ActiveScreen.SERVICE_TEST_CREATION -> "Add a new test"
                 ActiveScreen.SERVICE_TEST_HISTORY_ALL -> "Test report"
                 ActiveScreen.SERVICE_TEST_HISTORY_DETAILS -> "Test report"
+                ActiveScreen.JEU_SEB -> "Chess Game"
             },
             color = Color.White,
             fontSize = 20.sp,
