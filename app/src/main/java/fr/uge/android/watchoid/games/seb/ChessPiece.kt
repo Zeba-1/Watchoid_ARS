@@ -14,7 +14,7 @@ data class ChessPiece(
     var position: Pair<Int, Int>
 )
 
-fun getPossibleMoves(piece: ChessPiece, board: ChessBoard): List<Pair<Int, Int>> {
+fun getPossibleMoves(piece: ChessPiece, board: ChessBoard, checkForCheck: Boolean = true): List<Pair<Int, Int>> {
     val moves = mutableListOf<Pair<Int, Int>>()
     val (row, col) = piece.position
 
@@ -22,6 +22,7 @@ fun getPossibleMoves(piece: ChessPiece, board: ChessBoard): List<Pair<Int, Int>>
         PieceType.PAWN -> {
             val direction = if (piece.color == PieceColor.WHITE) 1 else -1
             val startRow = if (piece.color == PieceColor.WHITE) 1 else 6
+            val opponentStartRow = if (piece.color == PieceColor.WHITE) 6 else 1
 
             if (board.board[row + direction][col] == null) {
                 moves.add(Pair(row + direction, col))
@@ -36,6 +37,15 @@ fun getPossibleMoves(piece: ChessPiece, board: ChessBoard): List<Pair<Int, Int>>
             }
             if (col < 7 && board.board[row + direction][col + 1] != null && board.board[row + direction][col + 1]?.color != piece.color) {
                 moves.add(Pair(row + direction, col + 1))
+            }
+            // En passant
+            val lastMove = board.lastMove
+            if (lastMove != null && lastMove.piece.type == PieceType.PAWN && lastMove.piece.color != piece.color) {
+                val (lastFromRow, lastFromCol) = lastMove.from
+                val (lastToRow, lastToCol) = lastMove.to
+                if (lastFromRow == opponentStartRow && lastToRow == row && Math.abs(lastToCol - col) == 1) {
+                    moves.add(Pair(row + direction, lastToCol))
+                }
             }
         }
         PieceType.ROOK -> {
@@ -124,16 +134,23 @@ fun getPossibleMoves(piece: ChessPiece, board: ChessBoard): List<Pair<Int, Int>>
                 val newRow = row + move.first
                 val newCol = col + move.second
                 if (newRow in 0..7 && newCol in 0..7 && board.board[newRow][newCol]?.color != piece.color) {
-                    moves.add(Pair(newRow, newCol))
+                    // Simule le déplacement
+                    val originalPosition = piece.position
+                    val originalPiece = board.board[newRow][newCol]
+                    board.board[row][col] = null
+                    board.board[newRow][newCol] = piece
+                    piece.position = Pair(newRow, newCol)
+
+                    if (!checkForCheck || !board.isCheck()) {
+                        moves.add(Pair(newRow, newCol))
+                    }
+                    // Annule le déplacement
+                    board.board[row][col] = piece
+                    board.board[newRow][newCol] = originalPiece
+                    piece.position = originalPosition
                 }
             }
         }
     }
     return moves
-}
-
-fun isCheckmate(board: ChessBoard, color: PieceColor): Boolean {
-    val king = board.board.flatten().find { it?.type == PieceType.KING && it.color == color }!!
-    val kingMoves = getPossibleMoves(king, board)
-    return kingMoves.isEmpty()
 }

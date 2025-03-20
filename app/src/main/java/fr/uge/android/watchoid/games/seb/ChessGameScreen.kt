@@ -13,6 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -22,11 +23,18 @@ import fr.uge.android.watchoid.R
 fun ChessGameScreen() {
     val chessBoard = remember { ChessBoard() }
     var selectedPiece by remember { mutableStateOf<ChessPiece?>(null) }
+    var checkMateColor by remember { mutableStateOf<PieceColor?>(null) }
 
     val blackSquare = Color(0xFFAD3838)
     val columnLabels = listOf("H", "G", "F", "E", "D", "C", "B", "A")
     val rowLabels = listOf("1", "2", "3", "4", "5", "6", "7", "8")
     var possibleMoves: List<Pair<Int, Int>>
+
+    checkMateColor = if (chessBoard.isWhiteTurn) {
+        if (chessBoard.isCheckmate()) PieceColor.WHITE else null
+    } else {
+        if (chessBoard.isCheckmate()) PieceColor.BLACK else null
+    }
 
     if (selectedPiece != null) {
         possibleMoves = getPossibleMoves(selectedPiece!!, chessBoard)
@@ -54,16 +62,13 @@ fun ChessGameScreen() {
                             .size(48.dp)
                             .background(if ((row + col) % 2 == 0) Color.White else blackSquare)
                             .clickable {
-                                if (selectedPiece != null) {
-                                    if (possibleMoves.contains(Pair(row, col))) {
-                                        chessBoard.movePiece(selectedPiece!!, Pair(row, col))
-                                        selectedPiece = null
-                                    }
-                                } else if (piece != null) {
+                                if (checkMateColor != null) return@clickable
+                                if (selectedPiece != null && possibleMoves.contains(Pair(row, col))) {
+                                    chessBoard.movePiece(selectedPiece!!, Pair(row, col))
+                                    selectedPiece = null
+                                } else if (piece != null && piece.color == if (chessBoard.isWhiteTurn) PieceColor.WHITE else PieceColor.BLACK) {
                                     selectedPiece = piece
                                 }
-
-                                selectedPiece = piece
                             },
                         contentAlignment = Alignment.Center
                     ) {
@@ -84,11 +89,20 @@ fun ChessGameScreen() {
                         }
                         if (possibleMoves.contains(Pair(row, col))) {
                             Canvas(modifier = Modifier.size(48.dp)) {
-                                drawCircle(
-                                    color = Color.Red,
-                                    radius = 10.dp.toPx(),
-                                    center = this.center
-                                )
+                                if (chessBoard.board[row][col] != null) {
+                                    drawCircle(
+                                        color = Color.Gray,
+                                        radius = 20.dp.toPx(),
+                                        center = this.center,
+                                        style = Stroke(width = 2.dp.toPx())
+                                    )
+                                } else {
+                                    drawCircle(
+                                        color = Color.Gray,
+                                        radius = 10.dp.toPx(),
+                                        center = this.center
+                                    )
+                                    }
                             }
                         }
                     }
@@ -110,6 +124,15 @@ fun ChessGameScreen() {
                 }
             }
             Spacer(modifier = Modifier.size(24.dp))
+        }
+
+        if (checkMateColor != null) {
+            Text (
+                text = "Checkmate! ${if (checkMateColor == PieceColor.WHITE) "Black" else "White"} wins",
+                fontSize = 24.sp,
+                color = Color.Red,
+                modifier = Modifier.padding(16.dp)
+            )
         }
     }
 }
