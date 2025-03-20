@@ -23,16 +23,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -56,8 +51,7 @@ import fr.uge.android.watchoid.Action.ExecuteTest
 import fr.uge.android.watchoid.DAO.ServiceTestDao
 import fr.uge.android.watchoid.entity.test.TestStatus
 import fr.uge.android.watchoid.entity.test.TestType
-import fr.uge.android.watchoid.ui.ActiveScreen
-import fr.uge.android.watchoid.utils.DropDown
+import fr.uge.android.watchoid.utils.DropDownAll
 import fr.uge.android.watchoid.utils.deviceFunc
 import fr.uge.android.watchoid.utils.convertEpochToDate
 import kotlinx.coroutines.CoroutineScope
@@ -107,9 +101,9 @@ fun ServiceTestList(serviceTests: List<ServiceTest>, onServiceTestClick: (Servic
 
         if (moreFilter) {
             Spacer(modifier = Modifier.padding(8.dp))
-            DropDown("Type", TestType.entries.toList(), type) { type = it }
+            DropDownAll("Type", TestType.entries.toList(), type) { type = it }
             Spacer(modifier = Modifier.padding(8.dp))
-            DropDown("Status", TestStatus.entries.toList(), status) { status = it }
+            DropDownAll("Status", TestStatus.entries.toList(), status) { status = it }
             Spacer(modifier = Modifier.padding(8.dp))
             Button(
                 onClick = {

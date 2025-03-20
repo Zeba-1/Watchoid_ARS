@@ -18,8 +18,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -40,7 +38,7 @@ import androidx.compose.ui.unit.sp
 import fr.uge.android.watchoid.DAO.ServiceTestDao
 import fr.uge.android.watchoid.entity.report.TestReport
 import fr.uge.android.watchoid.utils.DatePickerField
-import fr.uge.android.watchoid.utils.DropDown
+import fr.uge.android.watchoid.utils.DropDownAll
 import fr.uge.android.watchoid.utils.convertEpochToDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -123,7 +121,7 @@ fun TestReportListScreen(coroutineScope: CoroutineScope, dao: ServiceTestDao) {
         if (moreFilter) {
             Spacer(modifier = Modifier.height(8.dp))
             // Boutons de filtrage
-            DropDown("Status", listOf("OK", "KO"), filterMode) {
+            DropDownAll("Status", listOf("OK", "KO"), filterMode) {
                 filterMode = it ?: "ALL"
             }
             Spacer(modifier = Modifier.height(8.dp))
