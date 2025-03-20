@@ -5,6 +5,7 @@ import fr.uge.android.watchoid.DAO.ServiceTestDao
 import fr.uge.android.watchoid.entity.test.PaternType
 import fr.uge.android.watchoid.entity.test.ServiceTest
 import fr.uge.android.watchoid.entity.report.TestReport
+import fr.uge.android.watchoid.entity.test.ConnectionType
 import fr.uge.android.watchoid.entity.test.TestStatus
 import fr.uge.android.watchoid.entity.test.TestType
 import kotlinx.coroutines.CoroutineScope
@@ -23,8 +24,21 @@ import java.net.Socket
 import java.net.SocketTimeoutException
 import java.net.URL
 
-fun ExecuteTest(serviceTest: ServiceTest, coroutineScope: CoroutineScope, dao: ServiceTestDao, userExecuted: Boolean = false, userAction: (Boolean) -> Unit = {}) {
-    var testOk = true
+fun ExecuteTest(serviceTest: ServiceTest, coroutineScope: CoroutineScope, dao: ServiceTestDao, batteryLevel: Int = 100, connectionDevice:Pair<Boolean,Boolean>, userExecuted: Boolean = false, userAction: (Boolean) -> Unit = {}) {
+    if (batteryLevel < serviceTest.minBatteryLevel) {
+        Log.i("BlueWorker", "Battery level is too low to execute the test")
+        userAction(false)
+        return
+    }
+
+    if ((serviceTest.connectionType == ConnectionType.WIFI && !connectionDevice.first) ||
+        (serviceTest.connectionType == ConnectionType.CELLULAR && !connectionDevice.second) ||
+        (serviceTest.connectionType == ConnectionType.ALL && !connectionDevice.first && !connectionDevice.second)) {
+        Log.i("ServiceTest", "No WIFI OR CELLULAR connection available")
+        userAction(false)
+        return
+    }
+
 
     when(serviceTest.type) {
         TestType.HTTP -> {
@@ -43,9 +57,9 @@ fun ExecuteTest(serviceTest: ServiceTest, coroutineScope: CoroutineScope, dao: S
 }
 
 fun ExecuteTests(tests: List<ServiceTest>, coroutineScope: CoroutineScope, dao: ServiceTestDao) {
-    for (test in tests) {
-        ExecuteTest(test, coroutineScope, dao)
-    }
+//    for (test in tests) {
+//        ExecuteTest(test, coroutineScope, dao)
+//    }
 }
 
 fun ExecutePingTest(serviceTest: ServiceTest, coroutineScope: CoroutineScope, dao : ServiceTestDao, userExecuted: Boolean = false, userAction: (Boolean) -> Unit = {}) {
@@ -269,4 +283,3 @@ suspend fun TcpSend(target: String,message:String ,port: Int, patternMatching:St
         }
     }
 }
-
