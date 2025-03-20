@@ -9,32 +9,46 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight.Companion.Bold
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import fr.uge.android.watchoid.DAO.ServiceTestDao
 import fr.uge.android.watchoid.entity.test.ConnectionType
 import fr.uge.android.watchoid.entity.test.PaternType
 import fr.uge.android.watchoid.entity.test.ServiceTest
 import fr.uge.android.watchoid.entity.test.TestStatus
 import fr.uge.android.watchoid.entity.test.TestType
+import fr.uge.android.watchoid.utils.DropDown
+import fr.uge.android.watchoid.utils.DropDownAll
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -48,25 +62,24 @@ fun ServiceTestForm(
     var type by remember { mutableStateOf(TestType.PING) }
     var target by remember { mutableStateOf("") }
     var periodicity by remember { mutableLongStateOf(0L) }
-    var expandedType by remember { mutableStateOf(false) }
-    var expandedPatern by remember { mutableStateOf(false) }
-    var expandedConnectionType by remember { mutableStateOf(false) }
     var patern by remember { mutableStateOf("") }
     var paternType by remember { mutableStateOf(PaternType.CONTAINS) }
-    var port by remember { mutableStateOf(0) }
+    var port by remember { mutableIntStateOf(0) }
     var message by remember { mutableStateOf("")}
-    var batteryLevel by remember { mutableStateOf(0)}
+    var batteryLevel by remember { mutableIntStateOf(0) }
     var isNotification by remember { mutableStateOf(false)}
     var connectionType by remember { mutableStateOf(ConnectionType.ALL)}
 
+    var execCondExpended by remember { mutableStateOf(false) }
+    var specificExpended by remember { mutableStateOf(false) }
+    var notificationExpended by remember { mutableStateOf(false) }
 
     Column (
         modifier = Modifier
             .padding(16.dp)
             .background(MaterialTheme.colorScheme.surface)
-            .padding(16.dp)
     ) {
-        TextField(
+        OutlinedTextField(
             value = name,
             onValueChange = { name = it },
             label = { Text("Name") },
@@ -75,7 +88,7 @@ fun ServiceTestForm(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        TextField(
+        OutlinedTextField(
             value = target,
             onValueChange = { target = it },
             label = { Text("Target") },
@@ -84,7 +97,7 @@ fun ServiceTestForm(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        TextField(
+        OutlinedTextField(
             value = periodicity.toString(),
             onValueChange = { periodicity = it.toLongOrNull() ?: 0L },
             label = { Text("Periodicity") },
@@ -93,177 +106,178 @@ fun ServiceTestForm(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        Box {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { expandedType = true }
-                    .padding(8.dp)
-            ) {
-                Text(
-                    text = "Type: ${type.name}",
-                    modifier = Modifier.weight(1f)
-                )
-                Icon(
-                    imageVector = if (expandedType) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
-            DropdownMenu(
-                expanded = expandedType,
-                onDismissRequest = { expandedType = false }
-            ) {
-                TestType.entries.forEach { testType ->
-                    DropdownMenuItem(
-                        text = { Text(testType.name) },
-                        onClick = {
-                            type = testType
-                            expandedType = false
-                        }
-                    )
-                }
-            }
-        }
-
-        if (type == TestType.UDP || type == TestType.TCP) {
-            Spacer(modifier = Modifier.height(16.dp))
-            TextField(
-                value = port.toString(),
-                onValueChange = { port = it.toIntOrNull() ?: 0 },
-                label = { Text("Port") },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-            TextField(
-                value = message,
-                onValueChange = { message = it },
-                label = { Text("Message to send") },
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-
-        if (type != TestType.PING) {
-            Spacer(modifier = Modifier.height(16.dp))
-
-            TextField(
-                value = patern,
-                onValueChange = { patern = it },
-                label = { Text("Patern") },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Box {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { expandedPatern = true }
-                        .padding(8.dp)
-                ) {
-                    Text(
-                        text = "Patern type: ${paternType.name}",
-                        modifier = Modifier.weight(1f)
-                    )
-                    Icon(
-                        imageVector = if (expandedPatern) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-                DropdownMenu(
-                    expanded = expandedPatern,
-                    onDismissRequest = { expandedPatern = false }
-                ) {
-                    PaternType.entries.forEach { _paternType ->
-                        DropdownMenuItem(
-                            text = { Text(_paternType.name) },
-                            onClick = {
-                                paternType = _paternType
-                                expandedPatern = false
-                            }
-                        )
-                    }
-                }
-            }
-
-        }
-
-        Column {
-            Slider(
-                value = batteryLevel.toFloat(),
-                onValueChange = { batteryLevel = it.toInt() },
-                valueRange = 0f..100f,
-                steps = 99,
-                modifier = Modifier.fillMaxWidth()
-            )
-            Text(
-                text = "Min Battery Level: $batteryLevel%",
-                modifier = Modifier.align(Alignment.CenterHorizontally)
-            )
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-
-        Box {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { expandedConnectionType = true }
-                    .padding(8.dp)
-            ) {
-                Text(
-                    text = "Connection type: ${connectionType.name}",
-                    modifier = Modifier.weight(1f)
-                )
-                Icon(
-                    imageVector = if (expandedConnectionType) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
-            DropdownMenu(
-                expanded = expandedConnectionType,
-                onDismissRequest = { expandedConnectionType = false }
-            ) {
-                ConnectionType.entries.forEach { _connectionType ->
-                    DropdownMenuItem(
-                        text = { Text(_connectionType.name) },
-                        onClick = {
-                            connectionType = _connectionType
-                            expandedConnectionType = false
-                        }
-                    )
-                }
-            }
+        DropDown("Type", TestType.entries, type) {
+            type = it
         }
 
         Spacer(modifier = Modifier.height(8.dp))
 
         //enable notification or not
-        Box {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp)
+        ) {
+            Text(
+                text = "Notification: ${if (isNotification) "Enabled" else "Disabled"}",
+                modifier = Modifier.weight(1f)
+            )
+            Checkbox(
+                modifier = Modifier.size(24.dp),
+                checked = isNotification,
+                onCheckedChange = { isNotification = it }
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+        Column {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { isNotification = !isNotification }
-                    .padding(8.dp)
+                    .clickable { notificationExpended = !notificationExpended }
             ) {
                 Text(
-                    text = "Notification: ${if (isNotification) "Enabled" else "Disabled"}",
+                    text = "Notification details",
+                    fontWeight = Bold,
+                    fontSize = 18.sp,
                     modifier = Modifier.weight(1f)
                 )
                 Icon(
-                    imageVector = if (isNotification) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                    imageVector = if (notificationExpended) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary
                 )
+            }
+            HorizontalDivider(
+                modifier = Modifier.fillMaxWidth(),
+                thickness = 1.dp,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+        
+        // Notification details
+        if (notificationExpended) {
+            // TODO: Add notification details
+        }
+
+        // Test specific fields
+        if (type != TestType.PING) {
+            Spacer(modifier = Modifier.height(16.dp))
+            Column {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { specificExpended = !specificExpended }
+                ) {
+                    Text(
+                        text = "Test Specific Fields",
+                        fontWeight = Bold,
+                        fontSize = 18.sp,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Icon(
+                        imageVector = if (specificExpended) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+                HorizontalDivider(
+                    modifier = Modifier.fillMaxWidth(),
+                    thickness = 1.dp,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+
+        if (specificExpended) {
+            if (type == TestType.UDP || type == TestType.TCP) {
+                Spacer(modifier = Modifier.height(16.dp))
+                OutlinedTextField(
+                    value = port.toString(),
+                    onValueChange = { port = it.toIntOrNull() ?: 0 },
+                    label = { Text("Port") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+                OutlinedTextField(
+                    value = message,
+                    onValueChange = { message = it },
+                    label = { Text("Message to send") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            if (type != TestType.PING) {
+                Spacer(modifier = Modifier.height(8.dp))
+
+                DropDown("Patern Type", PaternType.entries, paternType) {
+                    paternType = it
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                OutlinedTextField(
+                    value = patern,
+                    onValueChange = { patern = it },
+                    label = { Text("Patern") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+
+        // Test execution conditions
+        Spacer(modifier = Modifier.height(16.dp))
+        Column {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { execCondExpended = !execCondExpended }
+            ) {
+                Text(
+                    text = "Test Execution Conditions",
+                    fontWeight = Bold,
+                    fontSize = 18.sp,
+                    modifier = Modifier.weight(1f)
+                )
+                Icon(
+                    imageVector = if (execCondExpended) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+            HorizontalDivider(
+                modifier = Modifier.fillMaxWidth(),
+                thickness = 1.dp,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+
+        if (execCondExpended) {
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Column {
+                Slider(
+                    value = batteryLevel.toFloat(),
+                    onValueChange = { batteryLevel = it.toInt() },
+                    valueRange = 0f..100f,
+                    steps = 99,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Text(
+                    text = "Min Battery Level: $batteryLevel%",
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            DropDown("Connection Type", ConnectionType.entries, connectionType) {
+                connectionType = it
             }
         }
 
