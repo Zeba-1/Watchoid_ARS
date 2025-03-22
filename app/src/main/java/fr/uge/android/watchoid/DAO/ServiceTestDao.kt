@@ -31,6 +31,10 @@ interface ServiceTestDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTestReport(testReport: TestReport)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertServiceTest(serviceTest: ServiceTest)
+
+
     @Query("SELECT * FROM test_report WHERE testId = :testId")
     suspend fun getTestReportByTestId(testId: Int): TestReport?
 
@@ -39,4 +43,5 @@ interface ServiceTestDao {
 
     @Query("SELECT MAX(testId) FROM test_report")
     suspend fun getLastTestId(): Int?
+
 }

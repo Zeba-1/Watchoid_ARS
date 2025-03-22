@@ -1,7 +1,6 @@
 package fr.uge.android.watchoid.ui.components
 
 import android.app.Activity
-import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -52,7 +51,6 @@ import fr.uge.android.watchoid.utils.convertEpochToDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.json.JSONArray
-import java.io.InputStream
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -79,7 +77,7 @@ fun TestReportListScreen(coroutineScope: CoroutineScope, dao: ServiceTestDao) {
                 test?.name ?: "Unknown"
             }
             latestID = dao.getLastTestId()!!
-            listTest = dao.getAllTests();
+            listTest = dao.getAllTests()
         }
     }
 
@@ -120,13 +118,14 @@ fun TestReportListScreen(coroutineScope: CoroutineScope, dao: ServiceTestDao) {
         }
     }
 
-    var reports = emptyList<TestReport>()
+//    var reports = emptyList<TestReport>()
     val contextRead = LocalContext.current
     val importLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
         onResult = { uri ->
             uri?.let {
-                reports = readFileAndProcessReports(contextRead, it, dao, coroutineScope, listTest)  // Lire et traiter le fichier sélectionné
+                coroutineScope.launch { readFileAndProcessReports(contextRead, it, dao, listTest) }
+/*
                 val reportsWithIds = reports.map { report ->
                     // Ajouter un testId unique en l'incrémentant à chaque nouveau rapport
                     val newTestReport = report.copy(testId = latestID)
@@ -135,6 +134,7 @@ fun TestReportListScreen(coroutineScope: CoroutineScope, dao: ServiceTestDao) {
                 }
 
                 reports = reportsWithIds
+*/
                 isImportCompleted = true
             }
         }
@@ -144,14 +144,16 @@ fun TestReportListScreen(coroutineScope: CoroutineScope, dao: ServiceTestDao) {
         if (isImportCompleted) {
             // Iterer à travers chaque TestReport dans newTestReport
             Log.i("Insert Base", "In insert")
+            /*
             reports.forEach { testReport ->
                 coroutineScope.launch {
                     dao.insertTestReport(testReport) // Utilise 'testReport' ici
                     isImportCompleted = false
                 }
             }
+            */
             val allReports = dao.getAllTestReports()
-            allReports.toMutableList().addAll(reports)
+            //allReports.toMutableList().addAll(reports)
             coroutineScope.launch {
                 testsReports = allReports.reversed()
                 Log.i("Get ALL ID", testsReports.toString())
@@ -384,41 +386,20 @@ fun exportToFile(context: Context, uri: Uri, testReportsWithAllInfo : Map<Servic
 }
 
 // Fonction pour lire le fichier et l'ajouter à la base de données
-fun readFileAndProcessReports(context : Context, uri: Uri, dao: ServiceTestDao, coroutineScope : CoroutineScope, listTest: List<ServiceTest>): List<TestReport> {
-    /*
-    try {
-
-        val inputStream: InputStream? = context.contentResolver.openInputStream(uri)
-        val fileContent = inputStream?.bufferedReader().use { it?.readText() }
-
-        fileContent?.let {
-            // Diviser le fichier en plusieurs rapports, séparés par la ligne "--------------------"
-            val reports = it.split("\n".repeat(2))  // On suppose que chaque rapport est séparé par 20 tirets
-
-            val newReports = reports.mapNotNull { reportBlock ->
-                createTestReportFromBlock(reportBlock)
-            }
-
-            return newReports;
-        }
-    } catch (e: Exception) {
-        e.printStackTrace()
-    }
-    return emptyList();
-    */
-
+suspend fun readFileAndProcessReports(context : Context, uri: Uri, dao: ServiceTestDao, listTest: List<ServiceTest>) {
     val mapImportFound: MutableMap<ServiceTest, MutableList<TestReport>> = mutableMapOf()
 
     try {
 
         // Lire le contenu du fichier
         val inputStream = context.contentResolver.openInputStream(uri)
-        val jsonContent = inputStream?.bufferedReader().use { it?.readText() } ?: return emptyList()
+        val jsonContent = inputStream?.bufferedReader().use { it?.readText() }
 
         // Parser le JSON manuellement
         val jsonArray = JSONArray(jsonContent)
 
         for (i in 0 until jsonArray.length()) {
+            Log.i("Length", jsonArray.length().toString())
             val testJson = jsonArray.getJSONObject(i)
 
             // Extraction des infos du test
@@ -434,7 +415,6 @@ fun readFileAndProcessReports(context : Context, uri: Uri, dao: ServiceTestDao, 
             val lastTest = testJson.optLong("lastTest", 0)
 
             val serviceTest = ServiceTest(
-                id = 0,  // Laisser la base générer l'ID
                 name = name,
                 port = port,
                 type = parsingType(type),
@@ -446,6 +426,8 @@ fun readFileAndProcessReports(context : Context, uri: Uri, dao: ServiceTestDao, 
                 status = parsingStatus(status),
                 lastTest = lastTest
             )
+
+            Log.i("ServiceTest", serviceTest.name)
             // Vérifier si le test existe déjà
             val existingTest = listTest.find { it.name == serviceTest.name || it.lastTest == serviceTest.lastTest  }
             val testKey = existingTest ?: serviceTest
@@ -454,16 +436,11 @@ fun readFileAndProcessReports(context : Context, uri: Uri, dao: ServiceTestDao, 
 
             if (existingTest == null) {
                 Log.i("Import parsing", "On ne devrait jamais être la pour l'instant")
-                // Créer un nouveau ServiceTest si inexistant
-                // ON SAUVEGARDE ON INSERA PLUS TARD
-                // dao.insertServiceTest(existingTest)
-                // ON DOIT RÉCUPÉRER L'ID pour les RAPPORTS
-                // existingTest = dao.getTestByName(name)  // Récupérer l'ID après insertion
+                dao.insertServiceTest(serviceTest)
             }
 
             // Ajouter les rapports liés au test
             val reportsArray = testJson.optJSONArray("reports") ?: JSONArray()
-            val reports = mutableListOf<TestReport>()
 
             for (j in 0 until reportsArray.length()) {
                 val reportJson = reportsArray.getJSONObject(j)
@@ -480,21 +457,24 @@ fun readFileAndProcessReports(context : Context, uri: Uri, dao: ServiceTestDao, 
                     info = info,
                     timestamp = timestamp
                 )
-                // ON SAUVEGARDE ON AJOUTE PLUS TARD
-                // dao.insertTestReport(testReport)
-            }
-            mapImportFound.merge(testKey, reports) { existingReports, newReports ->
-                existingReports.apply { addAll(newReports) }
+                val existingTestReport = listTest.find { it.id == testReport.id }
+
+                Log.i("Import parsing testReportExists ?", existingTestReport.toString())
+
+                if (existingTestReport == null) {
+                    Log.i("Import parsing", "On ne devrait jamais être la pour l'instant")
+                    dao.insertTestReport(testReport)
+                }
+
             }
         }
 
         Log.i("Fin Import", "Import terminé avec succès ! 🚀")
-        Log.i("Fin Import", mapImportFound.toString())
+        Log.i("Fin Import", "" + mapImportFound)
     } catch (e: Exception) {
         e.printStackTrace()
         println("Erreur lors de l'import : ${e.message}")
     }
-    return emptyList()
 }
 
 fun parsingType(elementToParse: String): TestType {
@@ -532,7 +512,7 @@ fun createTestReportFromBlock(block: String): TestReport? {
     if (lines.size < 5) return null // Si le bloc est incomplet, ignorer ce bloc
 
     try {
-        val isTestOkLine = if (lines[1] == "Test OK") true else false
+        val isTestOkLine = (lines[1] == "Test OK")
         val executionTimeLine = lines[2]
         val responseTimeLine = lines[3]
         val infoLine = lines[4]
