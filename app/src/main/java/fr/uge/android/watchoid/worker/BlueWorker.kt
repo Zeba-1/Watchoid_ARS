@@ -22,7 +22,7 @@ class BlueWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, 
         val tests = dao.getAllTests()
 
         tests.forEach { test ->
-            if (test.periodicity != 0L) {
+            if (test.periodicity != 0L && test.periodicity >= 15 * 60) {
                 val currentTime = System.currentTimeMillis() / 1000
                 val testInfoEntity = dao.getTestById(test.id)
                 val elapsedTime = ((testInfoEntity?.lastTest ?: 0) - currentTime).absoluteValue
