@@ -118,23 +118,12 @@ fun TestReportListScreen(coroutineScope: CoroutineScope, dao: ServiceTestDao) {
         }
     }
 
-//    var reports = emptyList<TestReport>()
     val contextRead = LocalContext.current
     val importLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
         onResult = { uri ->
             uri?.let {
                 coroutineScope.launch { readFileAndProcessReports(contextRead, it, dao, listTest) }
-/*
-                val reportsWithIds = reports.map { report ->
-                    // Ajouter un testId unique en l'incrémentant à chaque nouveau rapport
-                    val newTestReport = report.copy(testId = latestID)
-                    latestID += 1  // Incrémente l'ID pour le prochain test
-                    newTestReport
-                }
-
-                reports = reportsWithIds
-*/
                 isImportCompleted = true
             }
         }
@@ -144,16 +133,8 @@ fun TestReportListScreen(coroutineScope: CoroutineScope, dao: ServiceTestDao) {
         if (isImportCompleted) {
             // Iterer à travers chaque TestReport dans newTestReport
             Log.i("Insert Base", "In insert")
-            /*
-            reports.forEach { testReport ->
-                coroutineScope.launch {
-                    dao.insertTestReport(testReport) // Utilise 'testReport' ici
-                    isImportCompleted = false
-                }
-            }
-            */
+
             val allReports = dao.getAllTestReports()
-            //allReports.toMutableList().addAll(reports)
             coroutineScope.launch {
                 testsReports = allReports.reversed()
                 Log.i("Get ALL ID", testsReports.toString())
@@ -503,42 +484,5 @@ fun parsingStatus(elementToParse: String): TestStatus {
         "SUCCESS" -> TestStatus.SUCCESS
         "FAILURE" -> TestStatus.FAILURE
         else -> throw IllegalArgumentException("status inconnu: $elementToParse")
-    }
-}
-
-// Fonction pour analyser chaque bloc et créer un TestReport
-fun createTestReportFromBlock(block: String): TestReport? {
-    val lines = block.split("\n")
-    if (lines.size < 5) return null // Si le bloc est incomplet, ignorer ce bloc
-
-    try {
-        val isTestOkLine = (lines[1] == "Test OK")
-        val executionTimeLine = lines[2]
-        val responseTimeLine = lines[3]
-        val infoLine = lines[4]
-
-        Log.i("parsing", "line 0 : " + lines[0] + "\n" +
-                "line 1 : " + lines[1] + "\n" +
-                "line 2 : " + lines[2] + "\n" +
-                "line 3 : " + lines[3] + "\n" +
-                "line 4 : " + lines[4] + "\n")
-        // Parser les informations
-        //val testName = nameLine.removePrefix("Test: ").trim()
-        val isTestOk = isTestOkLine // Convertir "true"/"false" en Boolean
-        val executionTime = executionTimeLine.removePrefix("Execution Time: ").trim().toLong()
-        val responseTime = responseTimeLine.removePrefix("Response Time: ").trim().toLong()
-        val info = infoLine.removePrefix("Info: ").trim()
-
-        // Créer et retourner un TestReport
-        return TestReport(
-            testId = 0, // Si tu as un ID unique, tu peux le générer ici
-            timestamp = executionTime, // Assumer que timestamp est l'heure d'exécution
-            isTestOk = isTestOk,
-            responseTime = responseTime,
-            info = info
-        )
-    } catch (e: Exception) {
-        e.printStackTrace()
-        return null // Si quelque chose échoue, ignorer ce rapport
     }
 }
