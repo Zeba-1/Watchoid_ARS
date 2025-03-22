@@ -22,14 +22,16 @@ class BlueWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, 
         val tests = dao.getAllTests()
 
         tests.forEach { test ->
-            val currentTime = System.currentTimeMillis() / 1000
-            val testInfoEntity = dao.getTestById(test.id)
-            val elapsedTime = ((testInfoEntity?.lastTest ?: 0) - currentTime).absoluteValue
-            if (elapsedTime >= test.periodicity) {
-                val batteryLevel = deviceFunc().getBatteryLevel(applicationContext)
-                val connectionDevice = deviceFunc().getConnectionStatus(applicationContext)
-                ExecuteTest(test, CoroutineScope(Dispatchers.IO), dao, batteryLevel,connectionDevice,false)
-                dao.update(testInfoEntity!!.apply { lastTest = currentTime })
+            if (test.periodicity != 0L) {
+                val currentTime = System.currentTimeMillis() / 1000
+                val testInfoEntity = dao.getTestById(test.id)
+                val elapsedTime = ((testInfoEntity?.lastTest ?: 0) - currentTime).absoluteValue
+                if (elapsedTime >= test.periodicity) {
+                    val batteryLevel = deviceFunc().getBatteryLevel(applicationContext)
+                    val connectionDevice = deviceFunc().getConnectionStatus(applicationContext)
+                    ExecuteTest(test, CoroutineScope(Dispatchers.IO), dao, batteryLevel,connectionDevice,false)
+                    dao.update(testInfoEntity!!.apply { lastTest = currentTime })
+                }
             }
         }
         Result.success()
