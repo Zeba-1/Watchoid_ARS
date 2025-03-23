@@ -49,9 +49,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import fr.uge.android.watchoid.Action.ExecuteTest
 import fr.uge.android.watchoid.DAO.ServiceTestDao
+import fr.uge.android.watchoid.entity.report.TestReport
 import fr.uge.android.watchoid.entity.test.TestStatus
 import fr.uge.android.watchoid.entity.test.TestType
 import fr.uge.android.watchoid.utils.DropDownAll
+import fr.uge.android.watchoid.utils.TestReportChart
 import fr.uge.android.watchoid.utils.deviceFunc
 import fr.uge.android.watchoid.utils.convertEpochToDate
 import kotlinx.coroutines.CoroutineScope
@@ -75,7 +77,9 @@ fun ServiceTestList(serviceTests: List<ServiceTest>, onServiceTestClick: (Servic
             matchesName && matchesType && matchesStatus
         }
     }
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+    Column(modifier = Modifier
+        .fillMaxSize()
+        .padding(16.dp)) {
         // FILTERS
 
         Row (
@@ -182,11 +186,14 @@ fun ServiceTestCard(serviceTest: ServiceTest, onClick: (ServiceTest) -> Unit = {
 fun ServiceTestDetails(serviceTestId: Int, dao: ServiceTestDao, coroutineScope: CoroutineScope) {
     var isLoading by remember { mutableStateOf(true) }
     var serviceTest by remember { mutableStateOf(ServiceTest()) }
+    var reports by remember { mutableStateOf(emptyList<TestReport>()) }
+
     val context = LocalContext.current
 
     LaunchedEffect(serviceTestId, serviceTest) {
         coroutineScope.launch {
             serviceTest = dao.getTestById(serviceTestId)!!
+            reports = dao.getTestReportByTestId(serviceTestId)
         }
         isLoading = false
     }
@@ -216,176 +223,193 @@ fun ServiceTestDetails(serviceTestId: Int, dao: ServiceTestDao, coroutineScope: 
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            Row {
-                Text(
-                    text = "Type: ",
-                    fontSize = 18.sp,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+            Box (
+                modifier = Modifier
+                    .background(Color(0x25485C91), RoundedCornerShape(8.dp))
+                    .padding(16.dp)
+            ) {
+                Column {
+                    Row {
+                        Text(
+                            text = "Type: ",
+                            fontSize = 18.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
 
-                Text(
-                    text = serviceTest.type.name,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
+                        Text(
+                            text = serviceTest.type.name,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
 
-            Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
-            Row {
-                Text(
-                    text = "Target: ",
-                    fontSize = 18.sp,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+                    Row {
+                        Text(
+                            text = "Target: ",
+                            fontSize = 18.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
 
-                Text(
-                    text = serviceTest.target,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
+                        Text(
+                            text = serviceTest.target,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
 
-            Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
-            Row {
-                Text(
-                    text = "Periodicity: ",
-                    fontSize = 18.sp,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+                    Row {
+                        Text(
+                            text = "Periodicity: ",
+                            fontSize = 18.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
 
-                Text(
-                    text = serviceTest.periodicity.toString(),
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
+                        Text(
+                            text = serviceTest.periodicity.toString(),
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
 
-            Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
-            Row {
-                Text(
-                    text = "Last execution: ",
-                    fontSize = 18.sp,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+                    Row {
+                        Text(
+                            text = "Last execution: ",
+                            fontSize = 18.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
 
-                Text(
-                    text = convertEpochToDate(serviceTest.lastTest),
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
+                        Text(
+                            text = convertEpochToDate(serviceTest.lastTest),
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
 
-            Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
-            Row {
-                Text(
-                    text = "Min battery level: ",
-                    fontSize = 18.sp,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+                    Row {
+                        Text(
+                            text = "Min battery level: ",
+                            fontSize = 18.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
 
-                Text(
-                    text = serviceTest.minBatteryLevel.toString(),
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
+                        Text(
+                            text = serviceTest.minBatteryLevel.toString(),
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
 
-            Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
-            Row {
-                Text(
-                    text = "Connection required: ",
-                    fontSize = 18.sp,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+                    Row {
+                        Text(
+                            text = "Connection required: ",
+                            fontSize = 18.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
 
-                Text(
-                    text = serviceTest.connectionType.toString(),
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
+                        Text(
+                            text = serviceTest.connectionType.toString(),
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
 
-            Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
-            Row {
-                Text(
-                    text = "Notification: ",
-                    fontSize = 18.sp,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+                    Row {
+                        Text(
+                            text = "Notification: ",
+                            fontSize = 18.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
 
-                Text(
-                    text = serviceTest.isNotification.toString(),
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
+                        Text(
+                            text = if (serviceTest.isNotification) "Yes" else "No",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
 
-            if (serviceTest.type == TestType.UDP || serviceTest.type == TestType.TCP) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Row {
-                    Text(
-                        text = "Port: ",
-                        fontSize = 18.sp,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
+                    if (serviceTest.type == TestType.UDP || serviceTest.type == TestType.TCP) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row {
+                            Text(
+                                text = "Port: ",
+                                fontSize = 18.sp,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
 
-                    Text(
-                        text = serviceTest.port.toString(),
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
+                            Text(
+                                text = serviceTest.port.toString(),
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row {
+                            Text(
+                                text = "Message to send: ",
+                                fontSize = 18.sp,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+
+                            Text(
+                                text = serviceTest.message,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+
+                    if (serviceTest.type != TestType.PING) {
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Text(
+                            text = "Patern (${serviceTest.paternType}): ",
+                            fontSize = 18.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+
+                        TextField(
+                            value = serviceTest.patern,
+                            onValueChange = {},
+                            readOnly = true,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = 100.dp)
+                        )
+                    }
                 }
-
-                Spacer(modifier = Modifier.height(8.dp))
-                Row {
-                    Text(
-                        text = "Message to send: ",
-                        fontSize = 18.sp,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-
-                    Text(
-                        text = serviceTest.message,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
             }
 
-            if (serviceTest.type != TestType.PING) {
-                Spacer(modifier = Modifier.height(8.dp))
-
+            if (reports.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "Patern (${serviceTest.paternType}): ",
+                    text = "Report data:",
                     fontSize = 18.sp,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-
-                TextField(
-                    value = serviceTest.patern,
-                    onValueChange = {},
-                    readOnly = true,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 100.dp)
-                )
+                TestReportChart(reports)
             }
-
 
             Spacer(modifier = Modifier.height(16.dp))
             Spacer(modifier = Modifier.weight(1f))

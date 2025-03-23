@@ -36,7 +36,7 @@ interface ServiceTestDao {
 
 
     @Query("SELECT * FROM test_report WHERE testId = :testId")
-    suspend fun getTestReportByTestId(testId: Int): TestReport?
+    suspend fun getTestReportByTestId(testId: Int): List<TestReport>
 
     @Query("SELECT * FROM test_report")
     suspend fun getAllTestReports(): List<TestReport>
