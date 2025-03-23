@@ -25,6 +25,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -178,63 +179,66 @@ fun TestReportListScreen(coroutineScope: CoroutineScope, dao: ServiceTestDao) {
                 }
             }
         }
-    ) {
-    Column(modifier = Modifier
-        .fillMaxSize()
-        .padding(16.dp)
-    ) {
-        // FILTER
-        Row (
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth()
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(start = 16.dp, end = 16.dp)
         ) {
-            // Barre de recherche par nom
-            OutlinedTextField(
-                value = searchText,
-                onValueChange = { searchText = it },
-                label = { Text("Rechercher par nom") },
-                modifier = Modifier.weight(1f)
-            )
-            IconButton(onClick = { moreFilter = !moreFilter }) {
-                Icon(
-                    imageVector = Icons.Default.MoreVert,
-                    contentDescription = "More filters",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(32.dp)
-                )
-            }
-        }
-        if (moreFilter) {
-            Spacer(modifier = Modifier.height(8.dp))
-            // Boutons de filtrage
-            DropDownAll("Status", listOf("OK", "KO"), filterMode) {
-                filterMode = it ?: "ALL"
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Row (
-                horizontalArrangement = Arrangement.SpaceEvenly,
+            // FILTER
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                DatePickerField(
-                    label = "Start Date: ",
-                    selectedDate = startDate,
-                    formatter = formatter,
-                    onDateSelected = { startDate = it }
+                // Barre de recherche par nom
+                OutlinedTextField(
+                    value = searchText,
+                    onValueChange = { searchText = it },
+                    label = { Text("Rechercher par nom") },
+                    modifier = Modifier.weight(1f)
                 )
-                DatePickerField(
-                    label = "End Date: ",
-                    selectedDate = endDate,
-                    formatter = formatter,
-                    onDateSelected = { endDate = it }
-                )
+                IconButton(onClick = { moreFilter = !moreFilter }) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = "More filters",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
             }
-        }
+            if (moreFilter) {
+                Spacer(modifier = Modifier.height(8.dp))
+                // Boutons de filtrage
+                DropDownAll("Status", listOf("OK", "KO"), filterMode) {
+                    filterMode = it ?: "ALL"
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    DatePickerField(
+                        label = "Start Date: ",
+                        selectedDate = startDate,
+                        formatter = formatter,
+                        onDateSelected = { startDate = it }
+                    )
+                    DatePickerField(
+                        label = "End Date: ",
+                        selectedDate = endDate,
+                        formatter = formatter,
+                        onDateSelected = { endDate = it }
+                    )
+                }
+            }
 
-        // FILTERED REPORTS
-        Spacer(modifier = Modifier.height(8.dp))
-        LazyColumn {
-            items(filteredReports) { testReport ->
-                TestReportItem(testReport, coroutineScope, dao)
+            // FILTERED REPORTS
+            Spacer(modifier = Modifier.height(8.dp))
+            LazyColumn {
+                items(filteredReports) { testReport ->
+                    TestReportItem(testReport, coroutineScope, dao)
+                }
             }
         }
     }
