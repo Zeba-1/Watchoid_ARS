@@ -1,11 +1,17 @@
 package fr.uge.android.watchoid
 
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.os.BatteryManager
 import android.os.Bundle
+import android.provider.Settings
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -44,17 +50,22 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.room.Room
-import fr.uge.android.watchoid.Action.ExecuteTest
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
 import fr.uge.android.watchoid.DAO.ServiceTestDao
 import fr.uge.android.watchoid.entity.test.ServiceTest
+import fr.uge.android.watchoid.games.seb.ChessGameScreen
 import fr.uge.android.watchoid.ui.ActiveScreen
 import fr.uge.android.watchoid.ui.components.ServiceTestDetails
 import fr.uge.android.watchoid.ui.components.ServiceTestForm
 import fr.uge.android.watchoid.ui.components.ServiceTestList
 import fr.uge.android.watchoid.ui.components.TestReportListScreen
 import fr.uge.android.watchoid.ui.theme.WatchoidTheme
+import fr.uge.android.watchoid.utils.deviceFunc
+import fr.uge.android.watchoid.worker.BlueWorker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import java.util.concurrent.TimeUnit
 
 class MainActivity : ComponentActivity() {
     lateinit var watchoidDatabase: WatchoidDatabase
@@ -70,6 +81,11 @@ class MainActivity : ComponentActivity() {
             "watchoid_database"
         ).fallbackToDestructiveMigration().build()
 
+        schedulePeriodicTests(applicationContext)
+
+        Log.i("TEST", "${deviceFunc().getBatteryLevel(applicationContext)}")
+        Log.i("TEST", "${deviceFunc().getConnectionStatus(applicationContext)}")
+
         setContent {
             WatchoidTheme {
                 Scaffold(modifier = Modifier
@@ -84,6 +100,13 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+}
+
+fun schedulePeriodicTests(context: Context) {
+    val periodicWorkRequest = PeriodicWorkRequestBuilder<BlueWorker>(10, TimeUnit.SECONDS)
+        .build()
+    Log.i("INFO", "Scheduling periodic tests")
+    WorkManager.getInstance(context).enqueue(periodicWorkRequest)
 }
 
 // This is for testing database implementation
@@ -115,12 +138,22 @@ fun MainView(modifier: Modifier = Modifier, dao: ServiceTestDao) {
                 TestReportListScreen(coroutineScope, dao)
             }
             ActiveScreen.SERVICE_TEST_HISTORY_DETAILS -> TODO()
+            ActiveScreen.JEU_SEB -> {
+                ChessGameScreen()
+            }
         }
     }
 }
 
 @Composable
 fun TopBar(activeScreen: ActiveScreen, onScreenChange : (ActiveScreen) -> Unit) {
+    var nbClick by remember { mutableStateOf(0) }
+
+    if (nbClick > 5) {
+        nbClick = 0
+        onScreenChange(ActiveScreen.JEU_SEB)
+    }
+
     Row(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
@@ -128,6 +161,7 @@ fun TopBar(activeScreen: ActiveScreen, onScreenChange : (ActiveScreen) -> Unit) 
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.primary)
             .padding(16.dp)
+            .clickable { nbClick++ }
     ) {
         Text(
             text = when (activeScreen) {
@@ -136,6 +170,7 @@ fun TopBar(activeScreen: ActiveScreen, onScreenChange : (ActiveScreen) -> Unit) 
                 ActiveScreen.SERVICE_TEST_CREATION -> "Add a new test"
                 ActiveScreen.SERVICE_TEST_HISTORY_ALL -> "Test report"
                 ActiveScreen.SERVICE_TEST_HISTORY_DETAILS -> "Test report"
+                ActiveScreen.JEU_SEB -> "Chess Game"
             },
             color = Color.White,
             fontSize = 20.sp,
@@ -188,4 +223,6 @@ fun ServiceTestListScreen(coroutineScope: CoroutineScope, trigger: Boolean = fal
     ServiceTestList(serviceTests) {
         onClickOnServiceTest(it)
     }
+
+
 }

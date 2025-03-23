@@ -43,5 +43,4 @@ interface ServiceTestDao {
 
     @Query("SELECT MAX(testId) FROM test_report")
     suspend fun getLastTestId(): Int?
-
 }

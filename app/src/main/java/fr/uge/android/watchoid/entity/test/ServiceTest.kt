@@ -16,4 +16,7 @@ class ServiceTest (
     var message: String = "test",
     var status: TestStatus = TestStatus.PENDING,
     var lastTest: Long = 0,
+    var minBatteryLevel: Int = 0,
+    var isNotification: Boolean = false,
+    var connectionType: ConnectionType = ConnectionType.ALL,
 )
