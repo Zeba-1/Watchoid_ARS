@@ -168,6 +168,7 @@ suspend fun HttpGet(target: String): Pair<Int, String> {
 }
 
 fun checkResponse(response: String, patern: String, paternType: PaternType): Boolean {
+    Log.i("checkResponse", "response : $response, paternType : $paternType, patern : $patern" )
     return when(paternType) {
         PaternType.CONTAINS -> response.contains(patern)
         PaternType.EQUALS -> response == patern
