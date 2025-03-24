@@ -48,9 +48,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import fr.uge.android.watchoid.Action.ExecuteTest
+import fr.uge.android.watchoid.Action.noficationGestion
 import fr.uge.android.watchoid.DAO.ServiceTestDao
 import fr.uge.android.watchoid.entity.test.TestStatus
 import fr.uge.android.watchoid.entity.test.TestType
+import fr.uge.android.watchoid.entity.test.toNotificationPriority
 import fr.uge.android.watchoid.utils.DropDownAll
 import fr.uge.android.watchoid.utils.deviceFunc
 import fr.uge.android.watchoid.utils.convertEpochToDate
@@ -333,6 +335,42 @@ fun ServiceTestDetails(serviceTestId: Int, dao: ServiceTestDao, coroutineScope: 
                 )
             }
 
+            if (serviceTest.isNotification) {
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row {
+                    Text(
+                        text = "Number test failed before notification: ",
+                        fontSize = 18.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+
+                    Text(
+                        text = serviceTest.nBTestFailBeforeNotification.toString(),
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row {
+                    Text(
+                        text = "Notification importance: ",
+                        fontSize = 18.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+
+                    Text(
+                        text = serviceTest.notifcationImportance.toNotificationPriority(),
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+
             if (serviceTest.type == TestType.UDP || serviceTest.type == TestType.TCP) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Row {
@@ -410,6 +448,7 @@ fun ServiceTestDetails(serviceTestId: Int, dao: ServiceTestDao, coroutineScope: 
                                     Toast.LENGTH_SHORT
                                 ).show()
                             }
+                            noficationGestion(serviceTest, dao, context)
                         }
                     },
                 ) {

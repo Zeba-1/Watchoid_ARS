@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import fr.uge.android.watchoid.Action.ExecuteTest
+import fr.uge.android.watchoid.Action.noficationGestion
 import fr.uge.android.watchoid.WatchoidDatabase
 import fr.uge.android.watchoid.utils.deviceFunc
 import kotlinx.coroutines.CoroutineScope
@@ -31,6 +32,7 @@ class BlueWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, 
                     val connectionDevice = deviceFunc().getConnectionStatus(applicationContext)
                     ExecuteTest(test, CoroutineScope(Dispatchers.IO), dao, batteryLevel,connectionDevice,false)
                     dao.update(testInfoEntity!!.apply { lastTest = currentTime })
+                    noficationGestion(test, dao, applicationContext)
                 }
             }
         }

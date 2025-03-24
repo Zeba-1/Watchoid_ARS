@@ -1,14 +1,21 @@
 package fr.uge.android.watchoid.utils
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.content.Context
+import android.content.Context.NOTIFICATION_SERVICE
 import android.content.Intent
 import android.content.IntentFilter
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.NetworkInfo
 import android.os.BatteryManager
+import android.os.Build
+import android.provider.Settings.Global.getString
 import android.util.Log
 import androidx.compose.material3.DatePickerDialog
+import androidx.core.content.ContextCompat.getSystemService
+import fr.uge.android.watchoid.R
 
 class deviceFunc {
 
@@ -32,6 +39,4 @@ class deviceFunc {
         val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return Pair(false,false)
         return Pair(capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI), capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR))
     }
-
-
 }

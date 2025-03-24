@@ -1,5 +1,6 @@
 package fr.uge.android.watchoid.ui.components
 
+import android.app.NotificationManager
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -47,6 +48,7 @@ import fr.uge.android.watchoid.entity.test.PaternType
 import fr.uge.android.watchoid.entity.test.ServiceTest
 import fr.uge.android.watchoid.entity.test.TestStatus
 import fr.uge.android.watchoid.entity.test.TestType
+import fr.uge.android.watchoid.entity.test.toNotificationPriority
 import fr.uge.android.watchoid.utils.DropDown
 import fr.uge.android.watchoid.utils.DropDownAll
 import kotlinx.coroutines.CoroutineScope
@@ -68,7 +70,9 @@ fun ServiceTestForm(
     var message by remember { mutableStateOf("")}
     var batteryLevel by remember { mutableIntStateOf(0) }
     var isNotification by remember { mutableStateOf(false)}
+    var nBTestFailBeforeNotification by remember { mutableIntStateOf(0)}
     var connectionType by remember { mutableStateOf(ConnectionType.ALL)}
+    var notifImportance by remember { mutableStateOf(NotificationManager.IMPORTANCE_DEFAULT) }
 
     var execCondExpended by remember { mutableStateOf(false) }
     var specificExpended by remember { mutableStateOf(false) }
@@ -130,36 +134,25 @@ fun ServiceTestForm(
             )
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-        Column {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { notificationExpended = !notificationExpended }
-            ) {
-                Text(
-                    text = "Notification details",
-                    fontWeight = Bold,
-                    fontSize = 18.sp,
-                    modifier = Modifier.weight(1f)
-                )
-                Icon(
-                    imageVector = if (notificationExpended) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
-            HorizontalDivider(
-                modifier = Modifier.fillMaxWidth(),
-                thickness = 1.dp,
-                color = MaterialTheme.colorScheme.primary
-            )
-        }
         
         // Notification details
-        if (notificationExpended) {
-            // TODO: Add notification details
+        if (isNotification) {
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedTextField(
+                value = nBTestFailBeforeNotification.toString(),
+                onValueChange = { nBTestFailBeforeNotification = it.toIntOrNull() ?: 0
+                    notificationExpended = !notificationExpended},
+                label = { Text("Number test fail before notification") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            DropDown("Notification Importance", listOf("Low", "High"), notifImportance.toNotificationPriority()) {
+                notifImportance = it.toNotificationPriority()
+            }
+
         }
 
         // Test specific fields
@@ -296,8 +289,10 @@ fun ServiceTestForm(
                     paternType = paternType,
                     message = message,
                     minBatteryLevel = batteryLevel,
-                    isNotification = false,
-                    connectionType = connectionType
+                    isNotification = isNotification,
+                    connectionType = connectionType,
+                    nBTestFailBeforeNotification = nBTestFailBeforeNotification,
+                    notifcationImportance = notifImportance
                 )
                 coroutineScope.launch {
                     dao.insert(serviceTest)
