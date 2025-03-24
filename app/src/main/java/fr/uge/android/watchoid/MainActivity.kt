@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.sp
 import androidx.room.Room
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
+import androidx.work.workDataOf
 import fr.uge.android.watchoid.DAO.ServiceTestDao
 import fr.uge.android.watchoid.entity.test.ServiceTest
 import fr.uge.android.watchoid.games.seb.ChessGameScreen
@@ -84,8 +85,6 @@ class MainActivity : ComponentActivity() {
             "watchoid_database"
         ).fallbackToDestructiveMigration().build()
 
-        schedulePeriodicTests(applicationContext)
-
         Log.i("TEST", "${deviceFunc().getBatteryLevel(applicationContext)}")
         Log.i("TEST", "${deviceFunc().getConnectionStatus(applicationContext)}")
 
@@ -120,13 +119,6 @@ fun createNotificationChannel(context: Context, channelId: String = "Watchoid", 
         val notificationManager: NotificationManager = context.getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.createNotificationChannel(channel)
     }
-}
-
-fun schedulePeriodicTests(context: Context) {
-    val periodicWorkRequest = PeriodicWorkRequestBuilder<BlueWorker>(15, TimeUnit.SECONDS)
-        .build()
-    Log.i("INFO", "Scheduling periodic tests")
-    WorkManager.getInstance(context).enqueue(periodicWorkRequest)
 }
 
 // This is for testing database implementation
@@ -192,7 +184,6 @@ fun MainView(modifier: Modifier = Modifier, dao: ServiceTestDao) {
         }
     }
 }
-
 
 @Composable
 fun TopBar(activeScreen: ActiveScreen, onScreenChange : (ActiveScreen) -> Unit) {

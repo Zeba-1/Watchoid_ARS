@@ -20,21 +20,19 @@ class BlueWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, 
         val database = WatchoidDatabase.getInstance(applicationContext)
         val dao = database.serviceTestDao()
 
-        val tests = dao.getAllTests()
+        Log.i("BlueWorker", "Worker started")
+        Log.i("BlueWorker", "Input data: $inputData")
+        val test = dao.getTestByName(inputData.getString("testName") ?: "")
 
-        tests.forEach { test ->
-            if (test.periodicity != 0L && test.periodicity >= 15 * 60) {
-                val currentTime = System.currentTimeMillis() / 1000
-                val testInfoEntity = dao.getTestById(test.id)
-                val elapsedTime = ((testInfoEntity?.lastTest ?: 0) - currentTime).absoluteValue
-                if (elapsedTime >= test.periodicity) {
-                    val batteryLevel = deviceFunc().getBatteryLevel(applicationContext)
-                    val connectionDevice = deviceFunc().getConnectionStatus(applicationContext)
-                    ExecuteTest(test, CoroutineScope(Dispatchers.IO), dao, batteryLevel,connectionDevice,false)
-                    dao.update(testInfoEntity!!.apply { lastTest = currentTime })
-                    noficationGestion(test, dao, applicationContext)
-                }
-            }
+        if (test != null) {
+            val batteryLevel = deviceFunc().getBatteryLevel(applicationContext)
+            val connectionDevice = deviceFunc().getConnectionStatus(applicationContext)
+            Log.i("BlueWorker", "Test found: ${test.name}")
+
+            ExecuteTest(test, CoroutineScope(Dispatchers.IO), dao, batteryLevel,connectionDevice,true)
+            noficationGestion(test, dao, applicationContext)
+        } else {
+            Log.e("BlueWorker", "Test not found")
         }
         Result.success()
     }

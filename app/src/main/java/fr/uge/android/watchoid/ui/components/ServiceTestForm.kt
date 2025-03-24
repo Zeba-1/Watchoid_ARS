@@ -1,6 +1,8 @@
 package fr.uge.android.watchoid.ui.components
 
 import android.app.NotificationManager
+import android.content.Context
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -42,6 +44,10 @@ import androidx.compose.ui.text.font.FontWeight.Companion.Bold
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
+import androidx.work.workDataOf
 import fr.uge.android.watchoid.DAO.ServiceTestDao
 import fr.uge.android.watchoid.entity.test.ConnectionType
 import fr.uge.android.watchoid.entity.test.PaternType
@@ -51,8 +57,10 @@ import fr.uge.android.watchoid.entity.test.TestType
 import fr.uge.android.watchoid.entity.test.toNotificationPriority
 import fr.uge.android.watchoid.utils.DropDown
 import fr.uge.android.watchoid.utils.DropDownAll
+import fr.uge.android.watchoid.worker.BlueWorker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import java.util.concurrent.TimeUnit
 
 @Composable
 fun ServiceTestForm(
@@ -297,6 +305,15 @@ fun ServiceTestForm(
                 coroutineScope.launch {
                     dao.insert(serviceTest)
                     onSubmit(serviceTest)
+                }
+
+                if(periodicity >= 15*60) {
+                    val periodicWorkRequest = PeriodicWorkRequestBuilder<BlueWorker>(periodicity, TimeUnit.SECONDS)
+                        .setInputData(workDataOf("testName" to name))
+                        .build()
+                    Log.i("INFO", "Scheduling periodic tests")
+
+                    WorkManager.getInstance().enqueue(periodicWorkRequest)
                 }
             },
             modifier = Modifier.fillMaxWidth()
