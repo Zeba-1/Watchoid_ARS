@@ -9,7 +9,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import fr.uge.android.watchoid.entity.report.TestReport
 
-@Database(entities = [ServiceTest::class, TestReport::class], version = 10)
+@Database(entities = [ServiceTest::class, TestReport::class], version = 12)
 abstract class WatchoidDatabase : RoomDatabase() {
     abstract fun serviceTestDao(): ServiceTestDao
 

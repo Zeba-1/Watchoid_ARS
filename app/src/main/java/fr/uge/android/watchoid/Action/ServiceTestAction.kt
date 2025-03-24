@@ -1,7 +1,15 @@
 package fr.uge.android.watchoid.Action
 
+import android.Manifest
+import android.app.NotificationManager
+import android.content.Context
+import android.content.pm.PackageManager
 import android.util.Log
+import androidx.core.app.ActivityCompat
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import fr.uge.android.watchoid.DAO.ServiceTestDao
+import fr.uge.android.watchoid.R
 import fr.uge.android.watchoid.entity.test.PaternType
 import fr.uge.android.watchoid.entity.test.ServiceTest
 import fr.uge.android.watchoid.entity.report.TestReport
@@ -23,6 +31,8 @@ import java.net.InetSocketAddress
 import java.net.Socket
 import java.net.SocketTimeoutException
 import java.net.URL
+
+var notificationId = 0
 
 fun ExecuteTest(serviceTest: ServiceTest, coroutineScope: CoroutineScope, dao: ServiceTestDao, batteryLevel: Int = 100, connectionDevice:Pair<Boolean,Boolean>, userExecuted: Boolean = false, userAction: (Boolean) -> Unit = {}) {
     if (batteryLevel < serviceTest.minBatteryLevel) {
@@ -54,12 +64,55 @@ fun ExecuteTest(serviceTest: ServiceTest, coroutineScope: CoroutineScope, dao: S
             ExecuteTcpTest(serviceTest, coroutineScope, dao, userExecuted, userAction)
         }
     }
+
 }
 
 fun ExecuteTests(tests: List<ServiceTest>, coroutineScope: CoroutineScope, dao: ServiceTestDao) {
 //    for (test in tests) {
 //        ExecuteTest(test, coroutineScope, dao)
 //    }
+}
+
+suspend fun noficationGestion(serviceTest: ServiceTest, dao: ServiceTestDao, context: Context) {
+    Log.i("ServiceTest", "isNotification : ${serviceTest.isNotification}, testResult : ${serviceTest.status}")
+    if (serviceTest.isNotification && serviceTest.status == TestStatus.FAILURE) {
+        val nbTestFail = dao.getTestReportCountByName(serviceTest.id, false)
+        Log.i("ServiceTest", "nbTestFail : $nbTestFail")
+        if ((nbTestFail % serviceTest.nBTestFailBeforeNotification) == 0) {
+            Log.i("ServiceTest", "Send notification")
+            if(serviceTest.notifcationImportance == NotificationManager.IMPORTANCE_LOW) {
+                buildNotification("Test failed", "Test ${serviceTest.name} failed", "Watchoid", context, NotificationCompat.PRIORITY_LOW)
+
+            }else {
+                buildNotification("Test failed", "Test ${serviceTest.name} failed", "Watchoid2", context, NotificationCompat.PRIORITY_HIGH)
+            }
+        }
+    }
+}
+
+fun buildNotification(textTitle: String, textContent: String, channelId: String, context: Context, priority: Int = NotificationCompat.PRIORITY_LOW) {
+    val builder = NotificationCompat.Builder(context, channelId)
+        .setSmallIcon(R.drawable.ic_launcher_foreground)
+        .setContentTitle(textTitle)
+        .setContentText(textContent)
+        .setPriority(priority)
+
+    Log.i("ServiceTest", "Send notification $textTitle : $textContent")
+
+    with(NotificationManagerCompat.from(context)) {
+        if (ActivityCompat.checkSelfPermission(
+                context,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            Log.i("ServiceTest", "No permission to send notification")
+
+            return@with
+        }
+
+        Log.i("ServiceTest", "notify")
+        notify(notificationId++, builder.build())
+    }
 }
 
 fun ExecutePingTest(serviceTest: ServiceTest, coroutineScope: CoroutineScope, dao : ServiceTestDao, userExecuted: Boolean = false, userAction: (Boolean) -> Unit = {}) {
@@ -87,7 +140,6 @@ fun ExecutePingTest(serviceTest: ServiceTest, coroutineScope: CoroutineScope, da
         }
     }
 }
-
 
 // ping via inet => ne semble pas fonctionner...
 suspend fun ping(target: String): Pair<Boolean, Long> {

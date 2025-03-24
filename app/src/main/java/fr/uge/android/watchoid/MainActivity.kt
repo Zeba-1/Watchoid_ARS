@@ -1,12 +1,11 @@
 package fr.uge.android.watchoid
 
-import android.annotation.SuppressLint
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
-import android.os.BatteryManager
+import android.content.Context.NOTIFICATION_SERVICE
+import android.os.Build
 import android.os.Bundle
-import android.provider.Settings
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -17,7 +16,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -25,20 +23,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -70,17 +63,11 @@ import fr.uge.android.watchoid.worker.BlueWorker
 import fr.uge.space_invader.GameControls
 import fr.uge.space_invader.GameLoop
 import fr.uge.space_invader.GameScreen
-import fr.uge.space_invader.GameState
-import fr.uge.space_invader.Invader
-import fr.uge.space_invader.LevelConfig
-import fr.uge.space_invader.Wall
 import fr.uge.space_invader.initializeLevel
 import fr.uge.space_invader.loadLevels
-import fr.uge.space_invader.parseLevelConfig
 import fr.uge.space_invader.rememberGameState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import java.io.InputStream
 import java.util.concurrent.TimeUnit
 
 class MainActivity : ComponentActivity() {
@@ -102,6 +89,10 @@ class MainActivity : ComponentActivity() {
         Log.i("TEST", "${deviceFunc().getBatteryLevel(applicationContext)}")
         Log.i("TEST", "${deviceFunc().getConnectionStatus(applicationContext)}")
 
+        Log.i("TEST", "Notification channel created")
+        createNotificationChannel(applicationContext, "Watchoid", NotificationManager.IMPORTANCE_LOW)
+        createNotificationChannel(applicationContext, "Watchoid2", NotificationManager.IMPORTANCE_MAX)
+
         setContent {
             WatchoidTheme {
                 Scaffold(modifier = Modifier
@@ -115,6 +106,19 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+}
+
+fun createNotificationChannel(context: Context, channelId: String = "Watchoid", importanceNotif: Int) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        val name = context.getString(R.string.channel_name)
+        val descriptionText = context.getString(R.string.channel_description)
+        val importance = importanceNotif
+        val channel = NotificationChannel(channelId, name, importance).apply {
+            description = descriptionText
+        }
+        val notificationManager: NotificationManager = context.getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.createNotificationChannel(channel)
     }
 }
 
@@ -255,6 +259,7 @@ fun TopBar(activeScreen: ActiveScreen, onScreenChange : (ActiveScreen) -> Unit) 
         }
     }
 }
+
 
 @Composable
 fun ServiceTestListScreen(coroutineScope: CoroutineScope, trigger: Boolean = false, dao: ServiceTestDao, onClickOnServiceTest: (ServiceTest) -> Unit = {}) {
