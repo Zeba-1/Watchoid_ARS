@@ -1,11 +1,22 @@
 package fr.uge.android.watchoid.ui.components
 
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
+
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -17,9 +28,11 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -27,14 +40,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.res.imageResource
+import androidx.compose.ui.res.painterResource
+
 import fr.uge.android.watchoid.DAO.ServiceTestDao
+import fr.uge.android.watchoid.R
 import fr.uge.android.watchoid.entity.test.PaternType
 import fr.uge.android.watchoid.entity.test.ServiceTest
 import fr.uge.android.watchoid.entity.test.TestStatus
 import fr.uge.android.watchoid.entity.test.TestType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import kotlin.random.Random
 
 @Composable
 fun ServiceTestForm(
@@ -42,6 +63,7 @@ fun ServiceTestForm(
     coroutineScope: CoroutineScope,
     onSubmit: (ServiceTest) -> Unit,
 ) {
+    var showMiniGame by remember { mutableStateOf(false) }
     var name by remember { mutableStateOf("") }
     var type by remember { mutableStateOf(TestType.PING) }
     var target by remember { mutableStateOf("") }
@@ -50,8 +72,15 @@ fun ServiceTestForm(
     var expandedPatern by remember { mutableStateOf(false) }
     var patern by remember { mutableStateOf("") }
     var paternType by remember { mutableStateOf(PaternType.CONTAINS) }
-    var port by remember { mutableStateOf(0) }
+    var port by remember { mutableIntStateOf(0) }
     var message by remember { mutableStateOf("") }
+
+
+    if (showMiniGame) {
+        GameScreen()
+        return
+        //RockPaperScisor()
+    }
 
     Column (
         modifier = Modifier
@@ -208,5 +237,225 @@ fun ServiceTestForm(
         ) {
             Text("Create")
         }
+    }
+    Spacer(modifier = Modifier.height(32.dp))
+
+    // Invisible Button for Easter Egg
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        contentAlignment = Alignment.BottomCenter
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(0.6f)
+                .height(40.dp)
+                .clickable {
+                    showMiniGame = true
+                }
+        ) {}
+    }
+}
+/*
+@Composable
+fun RockPaperScisor() {
+    val options = listOf("Pierre", "Feuille", "Ciseaux")
+    var playerChoice by remember { mutableStateOf<String?>(null) }
+    var result by remember { mutableStateOf("") }
+    var playerScore by remember { mutableIntStateOf(0) } // Score du joueur
+    var computerScore by remember { mutableIntStateOf(0) } // Score de l'ordinateur
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(1.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("Félicitations vous avez trouvé l'Easter Egg !\nPierre, Feuille, Ciseaux!", style = MaterialTheme.typography.titleMedium)
+
+        // Affichage des scores
+        Spacer(modifier = Modifier.height(8.dp))
+        Text("Score - Joueur: $playerScore | Ordinateur: $computerScore", style = MaterialTheme.typography.bodyLarge)
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
+            options.forEach { choice ->
+                Button(onClick = {
+                    playerChoice = choice
+                    val computerChoice = options[Random.nextInt(3)]
+                    result = when {
+                        playerChoice == computerChoice -> "Égalité !"
+                        playerChoice == "Pierre" && computerChoice == "Ciseaux" -> {
+                            playerScore++ // Le joueur gagne
+                            "Gagné !"
+                        }
+                        playerChoice == "Feuille" && computerChoice == "Pierre" -> {
+                            playerScore++ // Le joueur gagne
+                            "Gagné !"
+                        }
+                        playerChoice == "Ciseaux" && computerChoice == "Feuille" -> {
+                            playerScore++ // Le joueur gagne
+                            "Gagné !"
+                        }
+                        else -> {
+                            computerScore++ // L'ordinateur gagne
+                            "Perdu : $computerChoice"
+                        }
+                    }
+                }) {
+                    Text(choice)
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(result, style = MaterialTheme.typography.bodyLarge)
+    }
+}
+*/
+
+
+@Composable
+fun CatchFallingObjectsGame() {
+
+    // Variables du jeu
+    var playerX by remember { mutableFloatStateOf(300f) } // Position X du joueur (panier)
+    var score by remember { mutableIntStateOf(0) } // Score
+    var gameOver by remember { mutableStateOf(false) } // Statut du jeu
+    var fallingObjects by remember { mutableStateOf(listOf<Pair<Float, Float>>()) } // Objets qui tombent
+    var fallingSpeed by remember { mutableFloatStateOf(5f) } // Vitesse des objets tombants
+    var speedIncreaseTime by remember { mutableIntStateOf(0) } // Temps avant d'augmenter la vitesse
+    var gameTime by remember { mutableIntStateOf(30) } // Timer du jeu en secondes
+
+    // Gère le timer du jeu
+    LaunchedEffect(key1 = true) {
+        var elapsedTime = 0
+        while (elapsedTime < gameTime && !gameOver) {
+            delay(1000)
+            elapsedTime++
+        }
+        gameOver = true
+    }
+
+    // Gère les objets tombants
+    LaunchedEffect(key1 = true) {
+        while (!gameOver) {
+
+            if (Random.nextInt(100) < 4) { // 10% chance d'ajouter un nouvel objet
+                val randomX = Random.nextInt(50, 550).toFloat()
+                fallingObjects = fallingObjects + Pair(randomX, 0f)
+            }
+
+            fallingObjects = fallingObjects.map { (x, y) ->
+                if (y < 1100f) Pair(x, y + fallingSpeed) else Pair(x, y)
+            }.filter { (_, y) -> y < 1100f }
+
+
+            if (score > speedIncreaseTime) {
+                fallingSpeed += 0.3f // Augmenter la vitesse
+                speedIncreaseTime += 50
+            }
+
+            delay(30) // Mise à jour toutes les 30ms
+        }
+    }
+
+    // Gère la logique de récupération d'objet
+    LaunchedEffect(key1 = fallingObjects) {
+        if (!gameOver) {
+            fallingObjects.forEach { (x, y) ->
+                // Si un objet touche le panier, augmenter le score
+                if (y > 1030f && y < 1050f && x in (playerX - 50)..(playerX + 50)) {
+                    score++
+                    fallingObjects = fallingObjects.filterNot { it == Pair(x, y) }
+                }
+            }
+        }
+    }
+
+    // Gère le drag (déplacement du panier)
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .pointerInput(Unit) {
+                val maxWidth = size.width.toFloat()
+                detectDragGestures { _, dragAmount ->
+                    playerX += dragAmount.x
+                    // Limiter les mouvements du joueur dans la largeur de l'écran
+                    if (playerX < 50f) playerX = 50f
+                    if (playerX > maxWidth) playerX = maxWidth
+                }
+            }
+    ) {
+        // Canvas de jeu
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            // Fond du jeu
+            drawRect(Color.Black)
+
+            // Dessine le panier (joueur)
+            drawRect(
+                Color.Blue,
+                size = androidx.compose.ui.geometry.Size(100f, 20f),
+                topLeft = androidx.compose.ui.geometry.Offset(playerX - 50f, 1050f)
+            )
+
+            // Dessine les objets tombants
+
+            fallingObjects.forEach { (x, y) ->
+                drawCircle(Color.Red, radius = 20f, center = androidx.compose.ui.geometry.Offset(x, y))
+            }
+
+
+            // Affiche le score
+            drawContext.canvas.nativeCanvas.apply {
+                drawText("Score: $score", 20f, 1500f, android.graphics.Paint().apply {
+                    color = android.graphics.Color.WHITE
+                    textSize = 50f
+                })
+            }
+
+            if (gameOver) {
+                drawContext.canvas.nativeCanvas.apply {
+                    drawText("Game Over! Final Score: $score", 20f, 700f, android.graphics.Paint().apply {
+                        color = android.graphics.Color.WHITE
+                        textSize = 75f
+                    })
+                }
+
+                // Ajouter un bouton pour revenir au formulaire
+                Button(
+                    onClick = onBackToForm, // Appelle la fonction pour revenir au formulaire
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .padding(16.dp)
+                        .background(MaterialTheme.colorScheme.primary)
+                ) {
+                    Text("Revenir au Formulaire", color = Color.White)
+                }
+            }
+        }
+    }
+
+    // Vérifie si un objet touche le sol
+    LaunchedEffect(key1 = fallingObjects) {
+        if (!gameOver) {
+            fallingObjects.forEach { (_, y) ->
+                if (y >= 1100f) {
+                    gameOver = true
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun GameScreen() {
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
+    ) {
+        CatchFallingObjectsGame()
     }
 }

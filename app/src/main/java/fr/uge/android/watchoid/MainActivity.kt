@@ -48,6 +48,7 @@ import fr.uge.android.watchoid.Action.ExecuteTest
 import fr.uge.android.watchoid.DAO.ServiceTestDao
 import fr.uge.android.watchoid.entity.test.ServiceTest
 import fr.uge.android.watchoid.ui.ActiveScreen
+import fr.uge.android.watchoid.ui.components.GameScreen
 import fr.uge.android.watchoid.ui.components.ServiceTestDetails
 import fr.uge.android.watchoid.ui.components.ServiceTestForm
 import fr.uge.android.watchoid.ui.components.ServiceTestList
@@ -107,7 +108,7 @@ fun MainView(modifier: Modifier = Modifier, dao: ServiceTestDao) {
                 }
             }
             ActiveScreen.SERVICE_TEST_DETAILS -> ServiceTestDetails(selectedServiceTest!!.id, dao, coroutineScope)
-            ActiveScreen.SERVICE_TEST_CREATION -> ServiceTestForm (dao, coroutineScope) { st ->
+            ActiveScreen.SERVICE_TEST_CREATION -> ServiceTestForm(dao, coroutineScope) { st ->
                 Log.i("INFO", "ServiceTest added: $st")
                 activeScreen = ActiveScreen.SERVICE_TESTS_LIST
             }
