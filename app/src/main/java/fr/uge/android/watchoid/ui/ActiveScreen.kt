@@ -7,4 +7,5 @@ enum class ActiveScreen {
     SERVICE_TEST_HISTORY_ALL,
     SERVICE_TEST_HISTORY_DETAILS,
     JEU_SEB,
+    SPACE_INVADER,
 }

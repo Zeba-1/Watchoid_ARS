@@ -1,5 +1,6 @@
 package fr.uge.android.watchoid
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
@@ -13,6 +14,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -47,6 +49,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.room.Room
@@ -55,6 +58,7 @@ import androidx.work.WorkManager
 import fr.uge.android.watchoid.DAO.ServiceTestDao
 import fr.uge.android.watchoid.entity.test.ServiceTest
 import fr.uge.android.watchoid.games.seb.ChessGameScreen
+import fr.uge.android.watchoid.space_invader.MenuScreen
 import fr.uge.android.watchoid.ui.ActiveScreen
 import fr.uge.android.watchoid.ui.components.ServiceTestDetails
 import fr.uge.android.watchoid.ui.components.ServiceTestForm
@@ -63,8 +67,20 @@ import fr.uge.android.watchoid.ui.components.TestReportListScreen
 import fr.uge.android.watchoid.ui.theme.WatchoidTheme
 import fr.uge.android.watchoid.utils.deviceFunc
 import fr.uge.android.watchoid.worker.BlueWorker
+import fr.uge.space_invader.GameControls
+import fr.uge.space_invader.GameLoop
+import fr.uge.space_invader.GameScreen
+import fr.uge.space_invader.GameState
+import fr.uge.space_invader.Invader
+import fr.uge.space_invader.LevelConfig
+import fr.uge.space_invader.Wall
+import fr.uge.space_invader.initializeLevel
+import fr.uge.space_invader.loadLevels
+import fr.uge.space_invader.parseLevelConfig
+import fr.uge.space_invader.rememberGameState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import java.io.InputStream
 import java.util.concurrent.TimeUnit
 
 class MainActivity : ComponentActivity() {
@@ -103,7 +119,7 @@ class MainActivity : ComponentActivity() {
 }
 
 fun schedulePeriodicTests(context: Context) {
-    val periodicWorkRequest = PeriodicWorkRequestBuilder<BlueWorker>(10, TimeUnit.SECONDS)
+    val periodicWorkRequest = PeriodicWorkRequestBuilder<BlueWorker>(15, TimeUnit.SECONDS)
         .build()
     Log.i("INFO", "Scheduling periodic tests")
     WorkManager.getInstance(context).enqueue(periodicWorkRequest)
@@ -115,6 +131,8 @@ fun MainView(modifier: Modifier = Modifier, dao: ServiceTestDao) {
     var reloadTrigger by remember { mutableStateOf(false) }
     var activeScreen by remember { mutableStateOf(ActiveScreen.SERVICE_TESTS_LIST) }
     var selectedServiceTest by remember { mutableStateOf<ServiceTest?>(null) }
+    var showMenu by remember { mutableStateOf(false) }
+    var gameResult by remember { mutableStateOf(false) }
 
     val coroutineScope = rememberCoroutineScope()
 
@@ -130,9 +148,14 @@ fun MainView(modifier: Modifier = Modifier, dao: ServiceTestDao) {
                 }
             }
             ActiveScreen.SERVICE_TEST_DETAILS -> ServiceTestDetails(selectedServiceTest!!.id, dao, coroutineScope)
-            ActiveScreen.SERVICE_TEST_CREATION -> ServiceTestForm (dao, coroutineScope) { st ->
+
+            ActiveScreen.SERVICE_TEST_CREATION -> ServiceTestForm(dao, coroutineScope) { st ->
                 Log.i("INFO", "ServiceTest added: $st")
-                activeScreen = ActiveScreen.SERVICE_TESTS_LIST
+                if (st.target == "nasa.com") {
+                    activeScreen = ActiveScreen.SPACE_INVADER
+                } else {
+                    activeScreen = ActiveScreen.SERVICE_TESTS_LIST
+                }
             }
             ActiveScreen.SERVICE_TEST_HISTORY_ALL -> {
                 TestReportListScreen(coroutineScope, dao)
@@ -141,9 +164,31 @@ fun MainView(modifier: Modifier = Modifier, dao: ServiceTestDao) {
             ActiveScreen.JEU_SEB -> {
                 ChessGameScreen()
             }
+            ActiveScreen.SPACE_INVADER -> {
+                if (showMenu) {
+                    MenuScreen(gameResult = gameResult) {
+                        showMenu = false
+                    }
+                } else {
+                    val gameState = rememberGameState()
+                    val levels = loadLevels(LocalContext.current)
+                    initializeLevel(gameState, levels[0])
+                    Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                        Box(modifier = Modifier.padding(innerPadding)) {
+                            GameScreen(gameState)
+                            GameControls(gameState)
+                            GameLoop(gameState) { result ->
+                                gameResult = result
+                                showMenu = true
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
+
 
 @Composable
 fun TopBar(activeScreen: ActiveScreen, onScreenChange : (ActiveScreen) -> Unit) {
@@ -171,6 +216,7 @@ fun TopBar(activeScreen: ActiveScreen, onScreenChange : (ActiveScreen) -> Unit) 
                 ActiveScreen.SERVICE_TEST_HISTORY_ALL -> "Test report"
                 ActiveScreen.SERVICE_TEST_HISTORY_DETAILS -> "Test report"
                 ActiveScreen.JEU_SEB -> "Chess Game"
+                ActiveScreen.SPACE_INVADER -> "Space Invader"
             },
             color = Color.White,
             fontSize = 20.sp,
