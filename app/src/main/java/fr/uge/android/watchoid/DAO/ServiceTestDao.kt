@@ -47,4 +47,7 @@ interface ServiceTestDao {
 
     @Query("SELECT COUNT(*) FROM test_report WHERE testId = :testId AND isTestOk = :isTestOk")
     suspend fun getTestReportCountByName(testId: Int, isTestOk: Boolean =false): Int
+
+    @Query("SELECT * FROM service_test WHERE name = :name")
+    suspend fun getTestByName(name: String): ServiceTest?
 }
