@@ -1,5 +1,8 @@
 package fr.uge.android.watchoid.entity.test
 
+import android.app.Notification
+import android.app.NotificationManager
+import androidx.core.app.NotificationCompat
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
@@ -16,4 +19,28 @@ class ServiceTest (
     var message: String = "test",
     var status: TestStatus = TestStatus.PENDING,
     var lastTest: Long = 0,
+    var minBatteryLevel: Int = 0,
+    var isNotification: Boolean = false,
+    var connectionType: ConnectionType = ConnectionType.ALL,
+    var nBTestFailBeforeNotification: Int = 0,
+    var notifcationImportance : Int = NotificationManager.IMPORTANCE_LOW
+
+
+
 )
+
+fun Int.toNotificationPriority(): String {
+    return when (this) {
+        NotificationManager.IMPORTANCE_HIGH -> "High"
+        NotificationManager.IMPORTANCE_LOW -> "Low"
+        else -> "Unknown"
+    }
+}
+
+fun String.toNotificationPriority(): Int {
+    return when (this) {
+        "High" -> NotificationManager.IMPORTANCE_HIGH
+        "Low" -> NotificationManager.IMPORTANCE_LOW
+        else -> NotificationManager.IMPORTANCE_LOW
+    }
+}
