@@ -1,17 +1,13 @@
 package fr.uge.android.watchoid.ui.components
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.Image
-import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
-
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -40,15 +36,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.res.imageResource
-import androidx.compose.ui.res.painterResource
-
 import fr.uge.android.watchoid.DAO.ServiceTestDao
-import fr.uge.android.watchoid.R
 import fr.uge.android.watchoid.entity.test.PaternType
 import fr.uge.android.watchoid.entity.test.ServiceTest
 import fr.uge.android.watchoid.entity.test.TestStatus
@@ -321,29 +311,24 @@ fun RockPaperScisor() {
 fun CatchFallingObjectsGame() {
 
     // Variables du jeu
-    var playerX by remember { mutableFloatStateOf(300f) } // Position X du joueur (panier)
-    var score by remember { mutableIntStateOf(0) } // Score
-    var gameOver by remember { mutableStateOf(false) } // Statut du jeu
-    var fallingObjects by remember { mutableStateOf(listOf<Pair<Float, Float>>()) } // Objets qui tombent
-    var fallingSpeed by remember { mutableFloatStateOf(5f) } // Vitesse des objets tombants
-    var speedIncreaseTime by remember { mutableIntStateOf(0) } // Temps avant d'augmenter la vitesse
-    var gameTime by remember { mutableIntStateOf(30) } // Timer du jeu en secondes
+    var playerX by remember { mutableFloatStateOf(300f) }
+    var score by remember { mutableIntStateOf(0) }
+    var gameOver by remember { mutableStateOf(false) }
+    var fallingObjects by remember { mutableStateOf(listOf<Pair<Float, Float>>()) }
+    var fallingSpeed by remember { mutableFloatStateOf(5f) }
+    var speedIncreaseTime by remember { mutableIntStateOf(0) }
 
-    // Gère le timer du jeu
     LaunchedEffect(key1 = true) {
-        var elapsedTime = 0
-        while (elapsedTime < gameTime && !gameOver) {
+        while (!gameOver) {
             delay(1000)
-            elapsedTime++
         }
         gameOver = true
     }
 
-    // Gère les objets tombants
     LaunchedEffect(key1 = true) {
         while (!gameOver) {
 
-            if (Random.nextInt(100) < 4) { // 10% chance d'ajouter un nouvel objet
+            if (Random.nextInt(100) < 4) {
                 val randomX = Random.nextInt(50, 550).toFloat()
                 fallingObjects = fallingObjects + Pair(randomX, 0f)
             }
@@ -354,19 +339,17 @@ fun CatchFallingObjectsGame() {
 
 
             if (score > speedIncreaseTime) {
-                fallingSpeed += 0.3f // Augmenter la vitesse
+                fallingSpeed += 0.3f
                 speedIncreaseTime += 50
             }
 
-            delay(30) // Mise à jour toutes les 30ms
+            delay(50)
         }
     }
 
-    // Gère la logique de récupération d'objet
     LaunchedEffect(key1 = fallingObjects) {
         if (!gameOver) {
             fallingObjects.forEach { (x, y) ->
-                // Si un objet touche le panier, augmenter le score
                 if (y > 1030f && y < 1050f && x in (playerX - 50)..(playerX + 50)) {
                     score++
                     fallingObjects = fallingObjects.filterNot { it == Pair(x, y) }
@@ -375,7 +358,6 @@ fun CatchFallingObjectsGame() {
         }
     }
 
-    // Gère le drag (déplacement du panier)
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -383,32 +365,25 @@ fun CatchFallingObjectsGame() {
                 val maxWidth = size.width.toFloat()
                 detectDragGestures { _, dragAmount ->
                     playerX += dragAmount.x
-                    // Limiter les mouvements du joueur dans la largeur de l'écran
                     if (playerX < 50f) playerX = 50f
                     if (playerX > maxWidth) playerX = maxWidth
                 }
             }
     ) {
-        // Canvas de jeu
+
         Canvas(modifier = Modifier.fillMaxSize()) {
-            // Fond du jeu
             drawRect(Color.Black)
 
-            // Dessine le panier (joueur)
             drawRect(
                 Color.Blue,
                 size = androidx.compose.ui.geometry.Size(100f, 20f),
                 topLeft = androidx.compose.ui.geometry.Offset(playerX - 50f, 1050f)
             )
 
-            // Dessine les objets tombants
-
             fallingObjects.forEach { (x, y) ->
                 drawCircle(Color.Red, radius = 20f, center = androidx.compose.ui.geometry.Offset(x, y))
             }
 
-
-            // Affiche le score
             drawContext.canvas.nativeCanvas.apply {
                 drawText("Score: $score", 20f, 1500f, android.graphics.Paint().apply {
                     color = android.graphics.Color.WHITE
@@ -423,22 +398,10 @@ fun CatchFallingObjectsGame() {
                         textSize = 75f
                     })
                 }
-
-                // Ajouter un bouton pour revenir au formulaire
-                Button(
-                    onClick = onBackToForm, // Appelle la fonction pour revenir au formulaire
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .padding(16.dp)
-                        .background(MaterialTheme.colorScheme.primary)
-                ) {
-                    Text("Revenir au Formulaire", color = Color.White)
-                }
             }
         }
     }
 
-    // Vérifie si un objet touche le sol
     LaunchedEffect(key1 = fallingObjects) {
         if (!gameOver) {
             fallingObjects.forEach { (_, y) ->
@@ -457,5 +420,6 @@ fun GameScreen() {
         color = MaterialTheme.colorScheme.background
     ) {
         CatchFallingObjectsGame()
+        return@Surface
     }
 }
