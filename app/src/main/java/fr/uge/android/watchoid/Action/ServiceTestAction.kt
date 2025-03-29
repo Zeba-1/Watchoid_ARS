@@ -243,6 +243,7 @@ fun checkResponse(response: String, patern: String, paternType: PaternType): Boo
 
 fun ExecuteUdpTest(serviceTest: ServiceTest, coroutineScope: CoroutineScope, dao: ServiceTestDao,userExecuted: Boolean = false, userAction: (Boolean) -> Unit = {}) {
     coroutineScope.launch {
+        val startTime = System.currentTimeMillis()
         Log.i("ServiceTest", "Executing UDP test on ${serviceTest.target}")
         val (isReachable, response) = UdpSend(serviceTest.target, serviceTest.message, serviceTest.port, serviceTest.patern, serviceTest.paternType)
         if (isReachable) {
@@ -252,12 +253,14 @@ fun ExecuteUdpTest(serviceTest: ServiceTest, coroutineScope: CoroutineScope, dao
             serviceTest.status = TestStatus.FAILURE
             Log.i("ServiceTest", "${serviceTest.target} is not reachable or error")
         }
+        val endTime = System.currentTimeMillis()
         dao.update(serviceTest)
 
+        val responseTime = endTime - startTime
         val report = TestReport(testId = serviceTest.id,
             isTestOk = isReachable,
-            responseTime = -1,
-            info = if (isReachable) "UDP success" else "UDP failed")
+            responseTime = responseTime,
+            info = if (isReachable) "UDP success" else response)
         dao.insertTestReport(report)
 
         if (userExecuted) {
@@ -301,6 +304,7 @@ suspend fun UdpSend(target: String,message:String ,port: Int, patternMatching:St
 
 fun ExecuteTcpTest(serviceTest: ServiceTest, coroutineScope: CoroutineScope, dao: ServiceTestDao, userExecuted: Boolean = false, userAction: (Boolean) -> Unit = {}) {
     coroutineScope.launch {
+        val startTime = System.currentTimeMillis()
         Log.i("ServiceTest", "Executing TCP test on ${serviceTest.target}")
         val (isReachable, response) = TcpSend(serviceTest.target, serviceTest.message, serviceTest.port, serviceTest.patern, serviceTest.paternType)
         if (isReachable) {
@@ -310,11 +314,12 @@ fun ExecuteTcpTest(serviceTest: ServiceTest, coroutineScope: CoroutineScope, dao
             serviceTest.status = TestStatus.FAILURE
             Log.i("ServiceTest", "${serviceTest.target} is not reachable or error")
         }
-
+        val endTime = System.currentTimeMillis()
+        val responseTime = endTime - startTime
         val report = TestReport(testId = serviceTest.id,
             isTestOk = isReachable,
-            responseTime = -1,
-            info = if (isReachable) "TCP success" else "TCP failed")
+            responseTime = responseTime,
+            info = if (isReachable) "TCP success" else response)
 
         dao.insertTestReport(report)
 
