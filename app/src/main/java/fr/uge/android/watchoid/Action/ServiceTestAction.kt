@@ -37,6 +37,7 @@ var notificationId = 0
 fun ExecuteTest(serviceTest: ServiceTest, coroutineScope: CoroutineScope, dao: ServiceTestDao, batteryLevel: Int = 100, connectionDevice:Pair<Boolean,Boolean>, userExecuted: Boolean = false, userAction: (Boolean) -> Unit = {}) {
     if (batteryLevel < serviceTest.minBatteryLevel) {
         Log.i("BlueWorker", "Battery level is too low to execute the test")
+        AddReport(serviceTest, dao, false, -1, "Battery level is too low to execute the test", coroutineScope)
         userAction(false)
         return
     }
@@ -45,6 +46,7 @@ fun ExecuteTest(serviceTest: ServiceTest, coroutineScope: CoroutineScope, dao: S
         (serviceTest.connectionType == ConnectionType.CELLULAR && !connectionDevice.second) ||
         (serviceTest.connectionType == ConnectionType.ALL && !connectionDevice.first && !connectionDevice.second)) {
         Log.i("ServiceTest", "No WIFI OR CELLULAR connection available")
+        AddReport(serviceTest, dao, false, -1, "No WIFI OR CELLULAR connection available", coroutineScope)
         userAction(false)
         return
     }
@@ -65,6 +67,16 @@ fun ExecuteTest(serviceTest: ServiceTest, coroutineScope: CoroutineScope, dao: S
         }
     }
 
+}
+
+fun AddReport(serviceTest: ServiceTest, dao: ServiceTestDao, isTestOk: Boolean, responseTime: Long, info: String, coroutineScope: CoroutineScope) {
+    coroutineScope.launch {
+        val report = TestReport(testId = serviceTest.id,
+            isTestOk = isTestOk,
+            responseTime = responseTime,
+            info = info)
+        dao.insertTestReport(report)
+    }
 }
 
 fun ExecuteTests(tests: List<ServiceTest>, coroutineScope: CoroutineScope, dao: ServiceTestDao) {
@@ -242,6 +254,12 @@ fun ExecuteUdpTest(serviceTest: ServiceTest, coroutineScope: CoroutineScope, dao
         }
         dao.update(serviceTest)
 
+        val report = TestReport(testId = serviceTest.id,
+            isTestOk = isReachable,
+            responseTime = -1,
+            info = if (isReachable) "UDP success" else "UDP failed")
+        dao.insertTestReport(report)
+
         if (userExecuted) {
             userAction(isReachable)
         }
@@ -292,6 +310,13 @@ fun ExecuteTcpTest(serviceTest: ServiceTest, coroutineScope: CoroutineScope, dao
             serviceTest.status = TestStatus.FAILURE
             Log.i("ServiceTest", "${serviceTest.target} is not reachable or error")
         }
+
+        val report = TestReport(testId = serviceTest.id,
+            isTestOk = isReachable,
+            responseTime = -1,
+            info = if (isReachable) "TCP success" else "TCP failed")
+
+        dao.insertTestReport(report)
 
         dao.update(serviceTest)
 
