@@ -1,14 +1,21 @@
 package fr.uge.android.watchoid.ui.components
 
+import androidx.compose.foundation.Canvas
+import androidx.compose.runtime.*
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
 import android.app.NotificationManager
 import android.content.Context
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -25,11 +32,13 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
@@ -39,6 +48,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight.Companion.Bold
 import androidx.compose.ui.unit.TextUnit
@@ -60,6 +70,7 @@ import fr.uge.android.watchoid.utils.DropDownAll
 import fr.uge.android.watchoid.worker.BlueWorker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import kotlin.random.Random
 import java.util.concurrent.TimeUnit
 
 @Composable
@@ -68,6 +79,7 @@ fun ServiceTestForm(
     coroutineScope: CoroutineScope,
     onSubmit: (ServiceTest) -> Unit,
 ) {
+    var showMiniGame by remember { mutableStateOf(false) }
     var name by remember { mutableStateOf("") }
     var type by remember { mutableStateOf(TestType.PING) }
     var target by remember { mutableStateOf("") }
@@ -85,6 +97,11 @@ fun ServiceTestForm(
     var execCondExpended by remember { mutableStateOf(false) }
     var specificExpended by remember { mutableStateOf(false) }
     var notificationExpended by remember { mutableStateOf(false) }
+
+    if (showMiniGame) {
+        GameScreen()
+        return
+    }
 
     Column (
         modifier = Modifier
@@ -320,5 +337,138 @@ fun ServiceTestForm(
         ) {
             Text("Create")
         }
+    }
+    Spacer(modifier = Modifier.height(32.dp))
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        contentAlignment = Alignment.BottomCenter
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(0.6f)
+                .height(40.dp)
+                .clickable {
+                    showMiniGame = true
+                }
+        ) {}
+    }
+}
+
+@Composable
+fun CatchFallingObjectsGame() {
+
+    var playerX by remember { mutableFloatStateOf(300f) }
+    var score by remember { mutableIntStateOf(0) }
+    var gameOver by remember { mutableStateOf(false) }
+    var fallingObjects by remember { mutableStateOf(listOf<Pair<Float, Float>>()) }
+    var fallingSpeed by remember { mutableFloatStateOf(5f) }
+    var speedIncreaseTime by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(key1 = true) {
+        while (!gameOver) {
+            delay(1000)
+        }
+        gameOver = true
+    }
+
+    LaunchedEffect(key1 = true) {
+        while (!gameOver) {
+
+            if (Random.nextInt(100) < 4) {
+                val randomX = Random.nextInt(50, 550).toFloat()
+                fallingObjects = fallingObjects + Pair(randomX, 0f)
+            }
+
+            fallingObjects = fallingObjects.map { (x, y) ->
+                if (y < 1100f) Pair(x, y + fallingSpeed) else Pair(x, y)
+            }.filter { (_, y) -> y < 1100f }
+
+
+            if (score > speedIncreaseTime) {
+                fallingSpeed += 0.3f
+                speedIncreaseTime += 50
+            }
+
+            delay(50)
+        }
+    }
+
+    LaunchedEffect(key1 = fallingObjects) {
+        if (!gameOver) {
+            fallingObjects.forEach { (x, y) ->
+                if (y > 1030f && y < 1050f && x in (playerX - 50)..(playerX + 50)) {
+                    score++
+                    fallingObjects = fallingObjects.filterNot { it == Pair(x, y) }
+                }
+            }
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .pointerInput(Unit) {
+                val maxWidth = size.width.toFloat()
+                detectDragGestures { _, dragAmount ->
+                    playerX += dragAmount.x
+                    if (playerX < 50f) playerX = 50f
+                    if (playerX > maxWidth) playerX = maxWidth
+                }
+            }
+    ) {
+
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            drawRect(Color.Black)
+
+            drawRect(
+                Color.Blue,
+                size = androidx.compose.ui.geometry.Size(100f, 20f),
+                topLeft = androidx.compose.ui.geometry.Offset(playerX - 50f, 1050f)
+            )
+
+            fallingObjects.forEach { (x, y) ->
+                drawCircle(Color.Red, radius = 20f, center = androidx.compose.ui.geometry.Offset(x, y))
+            }
+
+            drawContext.canvas.nativeCanvas.apply {
+                drawText("Score: $score", 20f, 1500f, android.graphics.Paint().apply {
+                    color = android.graphics.Color.WHITE
+                    textSize = 50f
+                })
+            }
+
+            if (gameOver) {
+                drawContext.canvas.nativeCanvas.apply {
+                    drawText("Game Over! Final Score: $score", 20f, 700f, android.graphics.Paint().apply {
+                        color = android.graphics.Color.WHITE
+                        textSize = 75f
+                    })
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(key1 = fallingObjects) {
+        if (!gameOver) {
+            fallingObjects.forEach { (_, y) ->
+                if (y >= 1100f) {
+                    gameOver = true
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun GameScreen() {
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
+    ) {
+        CatchFallingObjectsGame()
+        return@Surface
     }
 }
